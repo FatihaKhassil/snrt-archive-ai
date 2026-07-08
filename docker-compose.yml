@@ -1,0 +1,14 @@
+services:
+
+  backend:
+
+    build:
+      context: ./backend-fastapi
+
+    container_name: snrt_backend
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - ./backend-fastapi:/app
