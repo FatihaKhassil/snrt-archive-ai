@@ -1,7 +1,6 @@
 services:
 
   backend:
-
     build:
       context: ./backend-fastapi
 
@@ -12,3 +11,25 @@ services:
 
     volumes:
       - ./backend-fastapi:/app
+
+    env_file:
+      - .env
+
+    depends_on:
+      - mongodb
+
+  mongodb:
+    image: mongo:8.0
+
+    container_name: snrt_mongodb
+
+    restart: always
+
+    ports:
+      - "27017:27017"
+
+    volumes:
+      - mongodb_data:/data/db
+
+volumes:
+  mongodb_data:
