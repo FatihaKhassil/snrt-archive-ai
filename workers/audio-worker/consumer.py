@@ -4,6 +4,9 @@ import json
 from aiokafka import AIOKafkaConsumer
 from aiokafka.errors import KafkaConnectionError
 
+from whisper_service import WhisperService
+from document_repository import DocumentRepository
+
 
 KAFKA_BOOTSTRAP_SERVERS = "kafka:9092"
 TOPIC = "document-uploaded"
@@ -36,10 +39,12 @@ async def create_consumer():
             )
 
             if TOPIC not in topics:
+
                 print(
                     f"❌ Topic {TOPIC} does not exist",
                     flush=True
                 )
+
                 await consumer.stop()
                 await asyncio.sleep(5)
                 continue
@@ -74,6 +79,13 @@ async def create_consumer():
 
 async def consume():
 
+    # Chargement du modèle Whisper
+    whisper_service = WhisperService()
+
+    # Repository MongoDB
+    document_repository = DocumentRepository()
+
+
     consumer = await create_consumer()
 
 
@@ -92,32 +104,78 @@ async def consume():
             )
 
 
-            print("==========================", flush=True)
+            print(
+                "==========================",
+                flush=True
+            )
 
             print(
                 "📄 New document received",
                 flush=True
             )
 
+
+            document_id = data.get("document_id")
+            file_type = data.get("file_type")
+            audio_path = data.get("storage_path")
+
+
             print(
                 "Document ID :",
-                data.get("document_id"),
+                document_id,
                 flush=True
             )
 
             print(
                 "File type :",
-                data.get("file_type"),
+                file_type,
                 flush=True
             )
 
             print(
                 "Path :",
-                data.get("storage_path"),
+                audio_path,
                 flush=True
             )
 
-            print("==========================", flush=True)
+
+            if file_type == "audio":
+
+                print(
+                    "🎤 Starting transcription...",
+                    flush=True
+                )
+
+
+                text = whisper_service.transcribe(
+                    audio_path
+                )
+
+
+                print(
+                    "📝 Transcription :",
+                    text,
+                    flush=True
+                )
+
+
+                # Sauvegarde dans MongoDB
+                await document_repository.update_transcription(
+                    document_id,
+                    text
+                )
+
+
+                print(
+                    "✅ Transcription saved to MongoDB",
+                    flush=True
+                )
+
+
+            print(
+                "==========================",
+                flush=True
+            )
 
 
     finally:

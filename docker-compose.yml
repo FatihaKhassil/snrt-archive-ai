@@ -31,6 +31,9 @@ services:
 
     container_name: snrt_audio_worker
 
+    volumes:
+      - ./storage:/storage
+
     depends_on:
       kafka:
         condition: service_healthy
