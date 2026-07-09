@@ -3,3 +3,6 @@ uvicorn[standard]
 
 motor
 python-dotenv
+python-multipart
+python-magic
+aiokafka
