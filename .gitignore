@@ -4,6 +4,7 @@ __pycache__/
 *.pyo
 *.pyd
 *.egg-info/
+*.pyc
 .venv/
 venv/
 
@@ -22,3 +23,6 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+
+# Storage files
+storage/
