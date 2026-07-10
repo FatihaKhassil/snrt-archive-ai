@@ -34,6 +34,12 @@ class UploadService:
 
         print("========== STEP 2 : File type detected ==========")
 
+        # Déterminer le type de document
+        if file_type == FileType.AUDIO:
+            document_type = "audio"
+        else:
+            document_type = "document"
+
         # Calcul du SHA256
         sha256 = FileUtils.calculate_upload_sha256(file)
 
@@ -106,6 +112,7 @@ class UploadService:
             DOCUMENT_UPLOADED,
             {
                 "document_id": document_id,
+                "document_type": document_type,
                 "file_type": file_type,
                 "storage_path": storage_path
             }

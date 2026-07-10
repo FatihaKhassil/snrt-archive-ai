@@ -4,7 +4,7 @@ import json
 from aiokafka import AIOKafkaConsumer
 from aiokafka.errors import KafkaConnectionError
 
-from whisper_service import WhisperService
+from tika_service import TikaService
 from document_repository import DocumentRepository
 
 
@@ -25,7 +25,7 @@ async def create_consumer():
             consumer = AIOKafkaConsumer(
                 TOPIC,
                 bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
-                group_id="snrt-audio-worker-v1",
+                group_id="snrt-document-worker-v1",
                 auto_offset_reset="earliest"
             )
 
@@ -49,9 +49,8 @@ async def create_consumer():
                 await asyncio.sleep(5)
                 continue
 
-
             print(
-                "🎧 Audio Worker started...",
+                "📄 Document Worker started...",
                 flush=True
             )
 
@@ -61,7 +60,6 @@ async def create_consumer():
             )
 
             return consumer
-
 
         except KafkaConnectionError as e:
 
@@ -76,15 +74,13 @@ async def create_consumer():
             await asyncio.sleep(5)
 
 
-
 async def consume():
 
-    whisper_service = WhisperService()
+    tika_service = TikaService()
 
-    document_repository = DocumentRepository()
+    repository = DocumentRepository()
 
     consumer = await create_consumer()
-
 
     try:
 
@@ -99,81 +95,48 @@ async def consume():
                 message.value.decode("utf-8")
             )
 
-            print(
-                "==========================",
-                flush=True
-            )
-
-            print(
-                "📄 New document received",
-                flush=True
-            )
-
             document_id = data.get("document_id")
-            document_type = data.get("document_type")
             file_type = data.get("file_type")
-            audio_path = data.get("storage_path")
+            file_path = data.get("storage_path")
 
-            print(
-                "Document ID :",
-                document_id,
-                flush=True
-            )
+            print("==========================")
+            print("📄 New document received")
+            print("==========================")
+            print("Document ID :", document_id)
+            print("File type :", file_type)
+            print("Path :", file_path)
 
-            print(
-                "Document type :",
-                document_type,
-                flush=True
-            )
-
-            print(
-                "File type :",
-                file_type,
-                flush=True
-            )
-
-            print(
-                "Path :",
-                audio_path,
-                flush=True
-            )
-
-            if document_type != "audio":
+            # Les fichiers audio sont traités par audio-worker
+            if file_type == "audio":
 
                 print(
-                    "⏭ Not an audio document, skipping...",
+                    "⏭ Audio detected, skipping...",
                     flush=True
                 )
 
                 continue
 
             print(
-                "🎤 Starting transcription...",
+                "📑 Starting text extraction...",
                 flush=True
             )
 
-            text = whisper_service.transcribe(
-                audio_path
+            extracted_text = tika_service.extract(
+                file_path
             )
 
             print(
-                "📝 Transcription :",
-                text,
+                "✅ Extraction completed",
                 flush=True
             )
 
-            await document_repository.update_transcription(
+            await repository.update_extracted_text(
                 document_id,
-                text
+                extracted_text
             )
 
             print(
-                "✅ Transcription saved to MongoDB",
-                flush=True
-            )
-
-            print(
-                "==========================",
+                "✅ Text saved to MongoDB",
                 flush=True
             )
 
@@ -182,7 +145,7 @@ async def consume():
         await consumer.stop()
 
         print(
-            "🛑 Audio Worker stopped",
+            "🛑 Document Worker stopped",
             flush=True
         )
 

@@ -105,7 +105,40 @@ services:
       retries: 10
 
 
+  tika:
+    image: apache/tika:latest
 
+    container_name: snrt_tika
+
+    ports:
+      - "9998:9998"
+
+    restart: always
+
+
+  document-worker:
+
+    build:
+      context: ./workers/document-worker
+
+    container_name: snrt_document_worker
+
+    volumes:
+      - ./storage:/storage
+
+    depends_on:
+
+      kafka:
+        condition: service_healthy
+
+      tika:
+        condition: service_started
+
+      mongodb:
+        condition: service_started
+
+    restart: always
+    
   kafka-ui:
 
     image: provectuslabs/kafka-ui:latest
