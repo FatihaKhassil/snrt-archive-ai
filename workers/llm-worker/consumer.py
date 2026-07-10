@@ -4,19 +4,18 @@ import json
 from aiokafka import AIOKafkaConsumer
 from aiokafka.errors import KafkaConnectionError
 
-from tika_service import TikaService
+from kafka_producer import kafka_producer
+from topics import (
+    TEXT_EXTRACTED,
+    LLM_COMPLETED
+)
+
+from llm_service import LLMService
 from document_repository import DocumentRepository
 
 
-from kafka_producer import kafka_producer
-from topics import (
-    DOCUMENT_UPLOADED,
-    TEXT_EXTRACTED
-)
-
-
 KAFKA_BOOTSTRAP_SERVERS = "kafka:9092"
-TOPIC = DOCUMENT_UPLOADED
+TOPIC = TEXT_EXTRACTED
 
 
 async def create_consumer():
@@ -27,12 +26,15 @@ async def create_consumer():
 
         try:
 
-            print("⏳ Connecting to Kafka...", flush=True)
+            print(
+                "⏳ Connecting to Kafka...",
+                flush=True
+            )
 
             consumer = AIOKafkaConsumer(
                 TOPIC,
                 bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
-                group_id="snrt-document-worker-v1",
+                group_id="snrt-llm-worker-v1",
                 auto_offset_reset="earliest"
             )
 
@@ -53,16 +55,18 @@ async def create_consumer():
                 )
 
                 await consumer.stop()
+
                 await asyncio.sleep(5)
+
                 continue
 
             print(
-                "📄 Document Worker started...",
+                "🤖 LLM Worker started...",
                 flush=True
             )
 
             print(
-                "Waiting for documents...",
+                "Waiting for extracted texts...",
                 flush=True
             )
 
@@ -83,11 +87,12 @@ async def create_consumer():
 
 async def consume():
 
-    tika_service = TikaService()
+    llm_service = LLMService()
 
     repository = DocumentRepository()
 
     consumer = await create_consumer()
+
     await kafka_producer.start()
 
     try:
@@ -95,7 +100,7 @@ async def consume():
         async for message in consumer:
 
             print(
-                "\n📩 Message received from Kafka",
+                "\n📩 New extracted text received",
                 flush=True
             )
 
@@ -103,23 +108,12 @@ async def consume():
                 message.value.decode("utf-8")
             )
 
-            document_id = data.get("document_id")
-            file_type = data.get("file_type")
-            file_path = data.get("storage_path")
-
-            print(
-                "==========================",
-                flush=True
+            document_id = data.get(
+                "document_id"
             )
 
-            print(
-                "📄 New document received",
-                flush=True
-            )
-
-            print(
-                "==========================",
-                flush=True
+            text = data.get(
+                "text"
             )
 
             print(
@@ -129,84 +123,81 @@ async def consume():
             )
 
             print(
-                "File type :",
-                file_type,
+                "🤖 Starting LLM processing...",
                 flush=True
             )
 
-            print(
-                "Path :",
-                file_path,
-                flush=True
+            result = await asyncio.to_thread(
+
+                llm_service.process,
+
+                text
+
             )
 
-            # Les fichiers audio sont traités par audio-worker
-            if file_type == "audio":
+            await repository.update_llm_result(
 
-                print(
-                    "⏭ Audio detected, skipping...",
-                    flush=True
-                )
-
-                continue
-
-            print(
-                "📑 Starting text extraction...",
-                flush=True
-            )
-
-            extracted_text = tika_service.extract(
-                file_path
-            )
-
-            print(
-                "✅ Extraction completed",
-                flush=True
-            )
-
-            await repository.update_extracted_text(
                 document_id,
-                extracted_text
+
+                result["summary"],
+
+                result["keywords"]
+
             )
 
             print(
-                "✅ Text saved to MongoDB",
+                "✅ Metadata saved to MongoDB",
                 flush=True
             )
 
             print(
-                "📤 Sending extracted text to Kafka...",
+                "Summary :",
+                result["summary"],
+                flush=True
+            )
+
+            print(
+                "Keywords :",
+                result["keywords"],
+                flush=True
+            )
+
+            print(
+                "📤 Sending metadata to Kafka...",
                 flush=True
             )
 
             await kafka_producer.send(
-                TEXT_EXTRACTED,
+
+                LLM_COMPLETED,
+
                 {
                     "document_id": document_id,
-                    "text": extracted_text
+                    "summary": result["summary"],
+                    "keywords": result["keywords"]
                 }
+
             )
 
             print(
-                "✅ Text sent to Kafka",
-                flush=True
-            )
-
-            print(
-                "==========================",
+                "✅ Metadata sent",
                 flush=True
             )
 
     finally:
+
         await kafka_producer.stop()
+
         await consumer.stop()
 
         print(
-            "🛑 Document Worker stopped",
+            "🛑 LLM Worker stopped",
             flush=True
         )
 
 
 if __name__ == "__main__":
 
-    asyncio.run(consume())
+    asyncio.run(
+        consume()
+    )

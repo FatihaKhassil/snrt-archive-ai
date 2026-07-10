@@ -138,6 +138,42 @@ services:
         condition: service_started
 
     restart: always
+
+
+  llm-worker:
+
+    build:
+      context: ./workers/llm-worker
+
+    container_name: snrt_llm_worker
+
+    depends_on:
+
+      kafka:
+        condition: service_healthy
+
+      mongodb:
+        condition: service_started
+
+      ollama:
+        condition: service_started
+
+    restart: always
+
+
+  ollama:
+
+    image: ollama/ollama:latest
+
+    container_name: snrt_ollama
+
+    ports:
+      - "11434:11434"
+
+    volumes:
+      - ollama_data:/root/.ollama
+
+    restart: always
     
   kafka-ui:
 
@@ -165,3 +201,5 @@ services:
 volumes:
 
   mongodb_data:
+
+  ollama_data:

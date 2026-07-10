@@ -1,5 +1,8 @@
+# Backend -> Workers
 DOCUMENT_UPLOADED = "document-uploaded"
 
-TRANSCRIPTION_COMPLETED = "transcription-completed"
+# Audio Worker / Document Worker -> LLM Worker
+TEXT_EXTRACTED = "text-extracted"
 
+# LLM Worker -> Embedding Worker (optionnel)
 LLM_COMPLETED = "llm-completed"

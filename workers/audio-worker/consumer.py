@@ -7,9 +7,14 @@ from aiokafka.errors import KafkaConnectionError
 from whisper_service import WhisperService
 from document_repository import DocumentRepository
 
+from kafka_producer import kafka_producer
+from topics import (
+    DOCUMENT_UPLOADED,
+    TEXT_EXTRACTED
+)
 
 KAFKA_BOOTSTRAP_SERVERS = "kafka:9092"
-TOPIC = "document-uploaded"
+TOPIC = DOCUMENT_UPLOADED
 
 
 async def create_consumer():
@@ -49,7 +54,6 @@ async def create_consumer():
                 await asyncio.sleep(5)
                 continue
 
-
             print(
                 "🎧 Audio Worker started...",
                 flush=True
@@ -61,7 +65,6 @@ async def create_consumer():
             )
 
             return consumer
-
 
         except KafkaConnectionError as e:
 
@@ -76,7 +79,6 @@ async def create_consumer():
             await asyncio.sleep(5)
 
 
-
 async def consume():
 
     whisper_service = WhisperService()
@@ -84,7 +86,7 @@ async def consume():
     document_repository = DocumentRepository()
 
     consumer = await create_consumer()
-
+    await kafka_producer.start()
 
     try:
 
@@ -173,12 +175,31 @@ async def consume():
             )
 
             print(
+                "📤 Sending extracted text to Kafka...",
+                flush=True
+            )
+
+            await kafka_producer.send(
+                TEXT_EXTRACTED,
+                {
+                    "document_id": document_id,
+                    "text": text
+                }
+            )
+
+            print(
+                "✅ Text sent to Kafka",
+                flush=True
+            )
+
+            print(
                 "==========================",
                 flush=True
             )
 
     finally:
 
+        await kafka_producer.stop()
         await consumer.stop()
 
         print(
