@@ -1,0 +1,4 @@
+aiokafka
+motor
+requests
+pymongo

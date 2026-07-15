@@ -23,9 +23,12 @@ class DocumentRepository:
             {
                 "$set": {
 
-                    "summary": summary,
+                    "status": "LLM_PROCESSED",
 
-                    "keywords": keywords
+                    "ai_metadata.summary": summary,
+                    "ai_metadata.keywords": keywords,
+
+                    "processing.summary": True
 
                 }
 

@@ -32,11 +32,112 @@ services:
     container_name: snrt_audio_worker
 
     volumes:
+      - ./workers/audio-worker:/app
       - ./storage:/storage
 
     depends_on:
       kafka:
         condition: service_healthy
+
+    restart: always
+
+
+  document-worker:
+
+    build:
+      context: ./workers/document-worker
+
+    container_name: snrt_document_worker
+
+    volumes:
+      - ./workers/document-worker:/app
+      - ./storage:/storage
+
+    depends_on:
+
+      kafka:
+        condition: service_healthy
+
+      tika:
+        condition: service_started
+
+      mongodb:
+        condition: service_started
+
+    restart: always
+
+
+  llm-worker:
+
+    build:
+      context: ./workers/llm-worker
+
+    container_name: snrt_llm_worker
+
+    volumes:
+      - ./workers/llm-worker:/app
+
+    depends_on:
+
+      kafka:
+        condition: service_healthy
+
+      mongodb:
+        condition: service_started
+
+      ollama:
+        condition: service_started
+
+    restart: always
+
+
+  embedding-worker:
+
+    build:
+      context: ./workers/embedding-worker
+
+    container_name: snrt_embedding_worker
+
+    volumes:
+      - ./workers/embedding-worker:/app
+
+    depends_on:
+
+      kafka:
+        condition: service_healthy
+
+      mongodb:
+        condition: service_started
+
+      ollama:
+        condition: service_started
+
+      chroma:
+        condition: service_started
+
+    restart: always
+
+
+  solr-worker:
+
+    build:
+      context: ./workers/solr-worker
+
+    container_name: snrt_solr_worker
+
+    volumes:
+      - ./workers/solr-worker:/app
+
+    depends_on:
+
+      kafka:
+        condition: service_healthy
+
+      mongodb:
+        condition: service_started
+
+      solr:
+        condition: service_started
 
     restart: always
 
@@ -89,7 +190,6 @@ services:
 
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
 
-
     healthcheck:
 
       test:
@@ -106,57 +206,13 @@ services:
 
 
   tika:
+
     image: apache/tika:latest
 
     container_name: snrt_tika
 
     ports:
       - "9998:9998"
-
-    restart: always
-
-
-  document-worker:
-
-    build:
-      context: ./workers/document-worker
-
-    container_name: snrt_document_worker
-
-    volumes:
-      - ./storage:/storage
-
-    depends_on:
-
-      kafka:
-        condition: service_healthy
-
-      tika:
-        condition: service_started
-
-      mongodb:
-        condition: service_started
-
-    restart: always
-
-
-  llm-worker:
-
-    build:
-      context: ./workers/llm-worker
-
-    container_name: snrt_llm_worker
-
-    depends_on:
-
-      kafka:
-        condition: service_healthy
-
-      mongodb:
-        condition: service_started
-
-      ollama:
-        condition: service_started
 
     restart: always
 
@@ -174,7 +230,39 @@ services:
       - ollama_data:/root/.ollama
 
     restart: always
-    
+
+
+  chroma:
+
+    image: chromadb/chroma:latest
+
+    container_name: snrt_chroma
+
+    ports:
+      - "8001:8000"
+
+    volumes:
+      - chroma_data:/data
+
+    restart: always
+
+
+  solr:
+
+    image: solr:9
+
+    container_name: snrt_solr
+
+    ports:
+      - "8983:8983"
+
+    command:
+      - solr-precreate
+      - snrt_documents
+
+    restart: always
+
+
   kafka-ui:
 
     image: provectuslabs/kafka-ui:latest
@@ -189,7 +277,6 @@ services:
       kafka:
         condition: service_healthy
 
-
     environment:
 
       KAFKA_CLUSTERS_0_NAME: snrt-cluster
@@ -197,9 +284,10 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
 
 
-
 volumes:
 
   mongodb_data:
 
   ollama_data:
+
+  chroma_data:

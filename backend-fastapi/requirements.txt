@@ -6,3 +6,5 @@ python-dotenv
 python-multipart
 python-magic
 aiokafka
+
+requests

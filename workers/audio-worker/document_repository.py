@@ -17,8 +17,13 @@ class DocumentRepository:
             },
             {
                 "$set": {
+
                     "transcription": transcription,
-                    "status": "TRANSCRIBED"
+
+                    "status": "TEXT_EXTRACTED",
+
+                    "processing.transcription": True
+
                 }
             }
         )

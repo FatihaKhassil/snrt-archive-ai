@@ -1,0 +1,8 @@
+aiokafka
+motor
+langchain
+langchain-community
+langchain-ollama
+langchain-text-splitters
+langchain-chroma
+chromadb

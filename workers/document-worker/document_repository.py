@@ -25,7 +25,9 @@ class DocumentRepository:
                 {
                     "extracted_text": text,
 
-                    "status": "TEXT_EXTRACTED"
+                    "status": "TEXT_EXTRACTED",
+
+                    "processing.transcription": True
                 }
             }
 
