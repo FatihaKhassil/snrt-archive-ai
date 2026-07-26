@@ -132,3 +132,92 @@ class DocumentRepository:
             )
 
         return documents
+
+
+    async def get_all(
+
+        self
+
+    ):
+
+        cursor = self.collection.find().sort(
+
+            "_id",
+
+            -1
+
+        )
+
+        documents = await cursor.to_list(
+
+            length=None
+
+        )
+
+        for document in documents:
+
+            document["_id"] = str(
+
+                document["_id"]
+
+            )
+
+        return documents
+
+
+    async def update(
+
+        self,
+
+        document_id: str,
+
+        data: dict
+
+    ):
+
+        result = await self.collection.update_one(
+
+            {
+
+                "_id": ObjectId(
+
+                    document_id
+
+                )
+
+            },
+
+            {
+
+                "$set": data
+
+            }
+
+        )
+
+        return result.modified_count > 0
+
+
+    async def delete(
+
+        self,
+
+        document_id: str
+
+    ):
+
+        result = await self.collection.delete_one(
+
+            {
+
+                "_id": ObjectId(
+
+                    document_id
+
+                )
+
+            }
+
+        )
+
+        return result.deleted_count > 0

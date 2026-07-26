@@ -33,7 +33,11 @@ class ChromaService:
 
         document_id,
 
-        chunks
+        chunks,
+
+        title,
+
+        summary
 
     ):
 
@@ -51,7 +55,11 @@ class ChromaService:
 
                         "document_id": document_id,
 
-                        "chunk_index": index
+                        "chunk_index": index,
+
+                        "title": title,
+
+                        "summary": summary
 
                     }
 

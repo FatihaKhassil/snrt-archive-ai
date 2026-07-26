@@ -9,26 +9,33 @@ class TextSplitter:
 
         self.splitter = RecursiveCharacterTextSplitter(
 
-            chunk_size=1000,
+            chunk_size=1800,
 
-            chunk_overlap=200,
+            chunk_overlap=300,
 
             separators=[
                 "\n\n",
                 "\n",
                 ". ",
+                "؟",
+                "!",
+                "،",
                 " ",
                 ""
             ]
 
         )
 
-
     def split(
+
         self,
+
         text
+
     ):
 
         return self.splitter.split_text(
+
             text
+
         )
