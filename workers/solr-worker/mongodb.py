@@ -7,4 +7,4 @@ client = AsyncIOMotorClient(
 
 )
 
-mongodb = client.snrt_archive
+database = client.snrt_archive

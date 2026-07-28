@@ -4,9 +4,7 @@ import json
 from aiokafka import AIOKafkaConsumer
 from aiokafka.errors import KafkaConnectionError
 
-from topics import (
-    LLM_COMPLETED
-)
+from topics import LLM_COMPLETED
 
 from document_repository import DocumentRepository
 from solr_service import SolrService
@@ -24,21 +22,13 @@ async def create_consumer():
 
         try:
 
-            print(
-                "⏳ Connecting to Kafka...",
-                flush=True
-            )
+            print("⏳ Connecting to Kafka...", flush=True)
 
             consumer = AIOKafkaConsumer(
-
                 TOPIC,
-
                 bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
-
                 group_id="snrt-solr-worker-v1",
-
                 auto_offset_reset="earliest"
-
             )
 
             await consumer.start()
@@ -63,27 +53,16 @@ async def create_consumer():
 
                 continue
 
-            print(
-                "🔎 Solr Worker started...",
-                flush=True
-            )
-
-            print(
-                "Waiting for LLM results...",
-                flush=True
-            )
+            print("🔎 Solr Worker started...", flush=True)
+            print("Waiting for LLM results...", flush=True)
 
             return consumer
 
         except KafkaConnectionError as e:
 
-            print(
-                f"⏳ Kafka not ready: {e}",
-                flush=True
-            )
+            print(f"⏳ Kafka not ready: {e}", flush=True)
 
             if consumer:
-
                 await consumer.stop()
 
             await asyncio.sleep(5)
@@ -101,26 +80,16 @@ async def consume():
 
         async for message in consumer:
 
-            print(
-                "\n📩 New LLM result received",
-                flush=True
-            )
+            print("\n📩 New LLM result received", flush=True)
 
             data = json.loads(
-
                 message.value.decode("utf-8")
-
             )
 
-            document_id = data.get(
-
-                "document_id"
-
-            )
+            document_id = data["document_id"]
 
             print(
-                "Document ID :",
-                document_id,
+                f"Document ID : {document_id}",
                 flush=True
             )
 
@@ -130,12 +99,10 @@ async def consume():
             )
 
             document = await repository.get_document(
-
                 document_id
-
             )
 
-            if not document:
+            if document is None:
 
                 print(
                     "❌ Document not found",
@@ -144,39 +111,30 @@ async def consume():
 
                 continue
 
-            print(
-                "📦 Sending document to Solr...",
-                flush=True
-            )
-
             solr_document = {
 
                 "id": str(document["_id"]),
 
-                "title": document.get(
-                    "title"
-                ),
+                "title": document.get("title"),
 
-                "transcription": document.get(
-                    "transcription"
-                ),
+                "transcription": document.get("transcription"),
 
                 "summary": document.get(
                     "ai_metadata",
                     {}
-                ).get(
-                    "summary"
-                ),
+                ).get("summary"),
 
                 "keywords": document.get(
                     "ai_metadata",
                     {}
-                ).get(
-                    "keywords",
-                    []
-                )
+                ).get("keywords", [])
 
             }
+
+            print(
+                "📦 Sending document to Solr...",
+                flush=True
+            )
 
             await asyncio.to_thread(
 
@@ -187,14 +145,12 @@ async def consume():
             )
 
             print(
-                "✅ Document indexed in Solr",
+                "✅ Indexed in Solr",
                 flush=True
             )
 
             await repository.update_solr_status(
-
                 document_id
-
             )
 
             print(
@@ -215,7 +171,5 @@ async def consume():
 if __name__ == "__main__":
 
     asyncio.run(
-
         consume()
-
     )
