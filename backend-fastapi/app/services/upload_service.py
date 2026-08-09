@@ -18,68 +18,110 @@ class UploadService:
 
     async def upload(self, file: UploadFile):
 
-        print("========== STEP 1 : UploadService started ==========")
+        print(
+            "========== STEP 1 : UploadService started ==========",
+            flush=True
+        )
 
         # Vérifier l'extension
-        extension = FileUtils.get_extension(file.filename)
+        extension = FileUtils.get_extension(
+            file.filename
+        )
 
         # Déterminer le type du fichier
-        file_type = FileUtils.get_file_type(extension)
+        file_type = FileUtils.get_file_type(
+            extension
+        )
 
         if file_type is None:
+
             raise HTTPException(
                 status_code=400,
                 detail="Unsupported file type."
             )
 
-        print("========== STEP 2 : File type detected ==========")
+        print(
+            "========== STEP 2 : File type detected ==========",
+            flush=True
+        )
 
         # Déterminer le type de document
         if file_type == FileType.AUDIO:
+
             document_type = "audio"
+
         else:
+
             document_type = "document"
 
         # Calcul du SHA256
-        sha256 = FileUtils.calculate_upload_sha256(file)
+        sha256 = FileUtils.calculate_upload_sha256(
+            file
+        )
 
         # Vérifier les doublons
-        existing_document = await self.repository.get_by_sha256(sha256)
+        existing_document = await self.repository.get_by_sha256(
+            sha256
+        )
 
         if existing_document:
+
             raise HTTPException(
                 status_code=409,
                 detail="This file already exists."
             )
 
-        print("========== STEP 3 : SHA256 OK ==========")
+        print(
+            "========== STEP 3 : SHA256 OK ==========",
+            flush=True
+        )
 
         # Générer un nom unique
         file_uuid = FileUtils.generate_uuid()
 
-        stored_filename = f"{file_uuid}{extension}"
+        stored_filename = (
+            f"{file_uuid}{extension}"
+        )
 
         # Choisir le dossier
         if file_type == FileType.AUDIO:
+
             folder = "/storage/audio/original"
+
         else:
+
             folder = "/storage/documents"
 
-        FileUtils.create_directory(folder)
+        FileUtils.create_directory(
+            folder
+        )
 
-        storage_path = os.path.join(folder, stored_filename)
+        storage_path = os.path.join(
+            folder,
+            stored_filename
+        )
 
         # Sauvegarder le fichier
-        FileUtils.save_file(file, storage_path)
+        FileUtils.save_file(
+            file,
+            storage_path
+        )
 
-        file_size = os.path.getsize(storage_path)
+        file_size = os.path.getsize(
+            storage_path
+        )
 
-        print("========== STEP 4 : File saved ==========")
+        print(
+            "========== STEP 4 : File saved ==========",
+            flush=True
+        )
 
         # Construire le document MongoDB
         document = DocumentSchema(
 
-            title=os.path.splitext(file.filename)[0],
+            title=os.path.splitext(
+                file.filename
+            )[0],
 
             original_filename=file.filename,
 
@@ -104,20 +146,57 @@ class UploadService:
             document.model_dump()
         )
 
-        print("========== STEP 5 : Saved in MongoDB ==========")
-
-        print("========== STEP 6 : Sending to Kafka ==========")
-
-        await kafka_producer.send(
-            DOCUMENT_UPLOADED,
-            {
-                "document_id": document_id,
-                "document_type": document_type,
-                "file_type": file_type,
-                "storage_path": storage_path
-            }
+        print(
+            "========== STEP 5 : Saved in MongoDB ==========",
+            flush=True
         )
 
-        print("========== STEP 7 : Kafka message sent ==========")
+        print(
+            "========== STEP 6 : Sending to Kafka ==========",
+            flush=True
+        )
+
+        # Envoyer le document à Kafka
+        kafka_sent = await kafka_producer.send(
+
+            DOCUMENT_UPLOADED,
+
+            {
+                "document_id": document_id,
+
+                "document_type": document_type,
+
+                "file_type": file_type,
+
+                "storage_path": storage_path
+            }
+
+        )
+
+        # Vérifier si Kafka a accepté le message
+        if not kafka_sent:
+
+            print(
+                "⚠️ Document saved in MongoDB, "
+                "but Kafka message was not sent.",
+                flush=True
+            )
+
+            print(
+                f"Document ID : {document_id}",
+                flush=True
+            )
+
+            # Le document existe toujours dans MongoDB
+            # et le fichier existe toujours dans Storage.
+            # On retourne son ID afin d'éviter que
+            # le frontend reste bloqué indéfiniment.
+
+            return document_id
+
+        print(
+            "========== STEP 7 : Kafka message sent ==========",
+            flush=True
+        )
 
         return document_id

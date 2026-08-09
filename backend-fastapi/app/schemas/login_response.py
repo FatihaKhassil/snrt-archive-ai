@@ -12,3 +12,13 @@ class LoginResponse(BaseModel):
     role: str
 
     first_name: str
+
+    last_name: str
+
+    email: str
+
+    phone: str
+
+    department: str
+
+    status: str

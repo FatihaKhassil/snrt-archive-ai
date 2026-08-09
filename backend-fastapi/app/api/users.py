@@ -1,8 +1,10 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.schemas.user_create_request import UserCreateRequest
 from app.schemas.user_update_request import UserUpdateRequest
 from app.services.user_service import UserService
+
+from app.security.roles import RoleChecker
 
 
 router = APIRouter(
@@ -15,7 +17,8 @@ service = UserService()
 
 @router.post("")
 async def create_user(
-    request: UserCreateRequest
+    request: UserCreateRequest,
+    current_user=Depends(RoleChecker(["ADMIN"]))
 ):
     return await service.create_user(
         request
@@ -23,13 +26,16 @@ async def create_user(
 
 
 @router.get("")
-async def get_users():
+async def get_users(
+    current_user=Depends(RoleChecker(["ADMIN"]))
+):
     return await service.get_all_users()
 
 
 @router.get("/{user_id}")
 async def get_user(
-    user_id: str
+    user_id: str,
+    current_user=Depends(RoleChecker(["ADMIN"]))
 ):
     return await service.get_user_by_id(
         user_id
@@ -39,7 +45,8 @@ async def get_user(
 @router.put("/{user_id}")
 async def update_user(
     user_id: str,
-    request: UserUpdateRequest
+    request: UserUpdateRequest,
+    current_user=Depends(RoleChecker(["ADMIN"]))
 ):
     return await service.update_user(
         user_id,
@@ -49,7 +56,8 @@ async def update_user(
 
 @router.delete("/{user_id}")
 async def delete_user(
-    user_id: str
+    user_id: str,
+    current_user=Depends(RoleChecker(["ADMIN"]))
 ):
     return await service.delete_user(
         user_id

@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 from aiokafka import AIOKafkaProducer
@@ -33,40 +34,132 @@ class KafkaProducerService:
     async def send(self, topic: str, message: dict):
 
         if self.producer is None:
-            raise RuntimeError("Kafka Producer is not started.")
+            raise RuntimeError(
+                "Kafka Producer is not started."
+            )
 
-        print("====================================", flush=True)
-        print("📤 Sending message to Kafka...", flush=True)
-        print(f"Topic : {topic}", flush=True)
-        print(f"Message : {message}", flush=True)
-        print("====================================", flush=True)
+        print(
+            "====================================",
+            flush=True
+        )
+
+        print(
+            "📤 Sending message to Kafka...",
+            flush=True
+        )
+
+        print(
+            f"Topic : {topic}",
+            flush=True
+        )
+
+        print(
+            f"Message : {message}",
+            flush=True
+        )
+
+        print(
+            "====================================",
+            flush=True
+        )
 
         try:
 
-            metadata = await self.producer.send_and_wait(
+            metadata = await asyncio.wait_for(
 
-                topic,
+                self.producer.send_and_wait(
 
-                json.dumps(message).encode("utf-8")
+                    topic,
+
+                    json.dumps(
+                        message
+                    ).encode("utf-8")
+
+                ),
+
+                timeout=10
 
             )
 
-            print("====================================", flush=True)
-            print("✅ Kafka ACK received", flush=True)
-            print(f"Topic     : {metadata.topic}", flush=True)
-            print(f"Partition : {metadata.partition}", flush=True)
-            print(f"Offset    : {metadata.offset}", flush=True)
-            print("====================================", flush=True)
+            print(
+                "====================================",
+                flush=True
+            )
+
+            print(
+                "✅ Kafka ACK received",
+                flush=True
+            )
+
+            print(
+                f"Topic     : {metadata.topic}",
+                flush=True
+            )
+
+            print(
+                f"Partition : {metadata.partition}",
+                flush=True
+            )
+
+            print(
+                f"Offset    : {metadata.offset}",
+                flush=True
+            )
+
+            print(
+                "====================================",
+                flush=True
+            )
+
+            return True
+
+        except asyncio.TimeoutError:
+
+            print(
+                "====================================",
+                flush=True
+            )
+
+            print(
+                "⚠️ Kafka timeout after 10 seconds",
+                flush=True
+            )
+
+            print(
+                "====================================",
+                flush=True
+            )
+
+            return False
 
         except Exception as e:
 
-            print("====================================", flush=True)
-            print("❌ ERROR while sending message to Kafka", flush=True)
-            print(type(e).__name__, flush=True)
-            print(str(e), flush=True)
-            print("====================================", flush=True)
+            print(
+                "====================================",
+                flush=True
+            )
 
-            raise
+            print(
+                "❌ ERROR while sending message to Kafka",
+                flush=True
+            )
+
+            print(
+                type(e).__name__,
+                flush=True
+            )
+
+            print(
+                str(e),
+                flush=True
+            )
+
+            print(
+                "====================================",
+                flush=True
+            )
+
+            return False
 
 
 kafka_producer = KafkaProducerService()

@@ -1,21 +1,42 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.upload import router as upload_router
 from app.api.search import router as search_router
-
-from app.core.config import settings
-from app.database.mongodb import client
-from app.kafka.producer import kafka_producer
 from app.api.rag import router as rag_router
 from app.api.documents import router as documents_router
 from app.api.users import router as users_router
 from app.api.auth import router as auth_router
+
+from app.core.config import settings
+from app.database.mongodb import client
+from app.kafka.producer import kafka_producer
+from app.api.dashboard import router as dashboard_router
+
 
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION
 )
 
+# ==========================
+# CORS Configuration
+# ==========================
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ==========================
+# Startup
+# ==========================
 
 @app.on_event("startup")
 async def startup():
@@ -33,12 +54,18 @@ async def startup():
         print(e)
 
 
+# ==========================
+# Routes
+# ==========================
+
 app.include_router(upload_router)
 app.include_router(search_router)
 app.include_router(rag_router)
 app.include_router(documents_router)
 app.include_router(users_router)
 app.include_router(auth_router)
+app.include_router(dashboard_router)
+
 
 @app.get("/")
 def root():
@@ -50,10 +77,13 @@ def root():
     }
 
 
+# ==========================
+# Shutdown
+# ==========================
+
 @app.on_event("shutdown")
 async def shutdown():
 
     await kafka_producer.stop()
 
     print("✅ Kafka Connection Closed")
-

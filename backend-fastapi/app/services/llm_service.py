@@ -7,7 +7,7 @@ class LLMService:
 
         self.url = "http://ollama:11434/api/generate"
 
-        self.model = "llama3.2:3b"
+        self.model = "llama3.1"
 
     async def generate(
 
