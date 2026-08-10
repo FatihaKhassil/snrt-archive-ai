@@ -1,1 +1,652 @@
-.search-page-form{max-width:760px;height:54px;margin-bottom:20px;padding:6px 6px 6px 16px;border:1px solid #dfe6ef;border-radius:12px;background:#fff;box-shadow:0 5px 18px rgba(15,23,42,.04);display:flex;align-items:center;gap:10px}.search-page-form>svg{color:#8190a4}.search-page-form input{flex:1;min-width:0;border:0;outline:0;color:#2f3f58;background:transparent;font:inherit;font-size:13px}.search-results{max-width:980px}.search-results-title{padding:18px 20px;border-bottom:1px solid #edf1f5;display:flex;align-items:center;justify-content:space-between}.search-results-title h2{margin:0;color:#2b394f;font-size:15px}.search-results-title span{color:#8693a7;font-size:12px}.result-list{padding:4px 20px}.result-item{padding:16px 0;border-bottom:1px solid #edf1f5;display:flex;gap:13px}.result-item:last-child{border:0}.result-icon{width:37px;height:37px;flex:0 0 37px;border-radius:10px;color:#d72831;background:#fff0f1;display:grid;place-items:center}.result-content h3{margin:0;color:#34425b;font-size:13px}.result-content p{margin:4px 0 8px;color:#8693a7;font-size:11px}.result-content>div{display:flex;align-items:center;gap:8px;color:#748197;font-size:10px}.result-content>div>span{padding-right:8px;border-right:1px solid #dfe5ee}@media(max-width:560px){.search-page-form{height:auto;padding:10px;flex-wrap:wrap}.search-page-form input{min-width:calc(100% - 32px)}.search-page-form .button{width:100%}}
+/* =========================================================
+   SEARCH FORM
+========================================================= */
+
+.search-page-form {
+
+    max-width: 1000px;
+
+    min-height: 54px;
+
+    margin-bottom: 22px;
+
+    padding: 6px 6px 6px 17px;
+
+    border: 1px solid #dfe6ef;
+
+    border-radius: 13px;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 5px 18px rgba(15, 23, 42, 0.04);
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.search-page-form > svg {
+
+    flex: 0 0 auto;
+
+    color: #8190a4;
+
+    font-size: 23px;
+}
+
+
+.search-page-form input {
+
+    flex: 1;
+
+    min-width: 0;
+
+    height: 42px;
+
+    border: 0;
+
+    outline: 0;
+
+    color: #2f3f58;
+
+    background: transparent;
+
+    font: inherit;
+
+    font-size: 13px;
+}
+
+
+.search-page-form input::placeholder {
+
+    color: #9aa6b6;
+}
+
+
+.search-page-form .button {
+
+    height: 42px;
+
+    padding: 0 20px;
+
+    border-radius: 10px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 7px;
+
+    white-space: nowrap;
+}
+
+
+.search-page-form .button svg {
+
+    font-size: 19px;
+}
+
+
+/* =========================================================
+   RESULTS PANEL
+========================================================= */
+
+.search-results {
+
+    max-width: 1250px;
+
+    overflow: hidden;
+
+    padding: 0;
+}
+
+
+/* =========================================================
+   RESULTS HEADER
+========================================================= */
+
+.search-results-title {
+
+    min-height: 76px;
+
+    padding: 17px 22px;
+
+    border-bottom: 1px solid #edf1f5;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 20px;
+}
+
+
+.search-results-title h2 {
+
+    margin: 0;
+
+    color: #263650;
+
+    font-size: 17px;
+
+    font-weight: 750;
+
+    letter-spacing: -0.25px;
+}
+
+
+.search-results-title p {
+
+    margin: 4px 0 0;
+
+    color: #8995a7;
+
+    font-size: 11px;
+}
+
+
+.results-count {
+
+    min-height: 34px;
+
+    padding: 0 12px;
+
+    border: 1px solid #e6e0ff;
+
+    border-radius: 9px;
+
+    color: #5b36d8;
+
+    background: #faf9ff;
+
+    display: flex;
+
+    align-items: center;
+
+    white-space: nowrap;
+
+    font-size: 12px;
+
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   RESULT LIST
+========================================================= */
+
+.result-list {
+
+    padding: 4px 22px;
+}
+
+
+.result-item {
+
+    min-height: 82px;
+
+    padding: 16px 0;
+
+    border-bottom: 1px solid #edf1f5;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 14px;
+
+    transition:
+        background 0.18s ease;
+}
+
+
+.result-item:last-child {
+
+    border-bottom: 0;
+}
+
+
+.result-item:hover {
+
+    background: #fcfdff;
+}
+
+
+/* =========================================================
+   DOCUMENT ICON
+========================================================= */
+
+.result-icon {
+
+    width: 42px;
+
+    height: 42px;
+
+    flex: 0 0 42px;
+
+    border-radius: 11px;
+
+    color: #d72831;
+
+    background: #fff0f1;
+
+    display: grid;
+
+    place-items: center;
+}
+
+
+.result-icon svg {
+
+    font-size: 22px;
+}
+
+
+/* =========================================================
+   RESULT CONTENT
+========================================================= */
+
+.result-content {
+
+    min-width: 0;
+
+    flex: 1;
+}
+
+
+.result-title-row {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.result-content h3 {
+
+    overflow: hidden;
+
+    margin: 0;
+
+    color: #263650;
+
+    font-size: 14px;
+
+    font-weight: 750;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+
+.result-content p {
+
+    overflow: hidden;
+
+    margin: 4px 0 7px;
+
+    color: #8995a7;
+
+    font-size: 11px;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+
+.result-number {
+
+    flex: 0 0 auto;
+
+    padding: 4px 7px;
+
+    border-radius: 6px;
+
+    color: #5b36d8;
+
+    background: #f1edff;
+
+    font-size: 8px;
+
+    font-weight: 800;
+
+    letter-spacing: 0.4px;
+}
+
+
+/* =========================================================
+   META
+========================================================= */
+
+.result-meta {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 0;
+}
+
+
+.result-meta > span {
+
+    padding: 0 8px;
+
+    border-right: 1px solid #dfe5ee;
+
+    color: #748197;
+
+    font-size: 10px;
+}
+
+
+.result-meta > span:first-child {
+
+    padding-left: 0;
+}
+
+
+.result-meta > span:last-child {
+
+    border-right: 0;
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.result-actions {
+
+    flex: 0 0 auto;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 7px;
+}
+
+
+.result-view-button,
+.result-download-button {
+
+    height: 38px;
+
+    padding: 0 11px;
+
+    border: 1px solid #dfe5ef;
+
+    border-radius: 9px;
+
+    background: #ffffff;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 6px;
+
+    cursor: pointer;
+
+    font: inherit;
+
+    font-size: 10px;
+
+    font-weight: 650;
+
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+
+.result-view-button {
+
+    color: #5b36d8;
+}
+
+
+.result-view-button:hover {
+
+    border-color: #d6ccfb;
+
+    background: #f7f5ff;
+
+    box-shadow:
+        0 3px 9px rgba(91, 54, 216, 0.08);
+}
+
+
+.result-download-button {
+
+    color: #d72831;
+
+    border-color: #f0d9dc;
+}
+
+
+.result-download-button:hover {
+
+    border-color: #e5adb2;
+
+    background: #fff3f4;
+
+    box-shadow:
+        0 3px 9px rgba(215, 40, 49, 0.08);
+}
+
+
+.result-download-button:disabled {
+
+    opacity: 0.55;
+
+    cursor: not-allowed;
+
+    box-shadow: none;
+}
+
+
+.result-view-button svg,
+.result-download-button svg {
+
+    font-size: 17px;
+}
+
+
+/* =========================================================
+   EMPTY
+========================================================= */
+
+.empty-state {
+
+    min-height: 150px;
+
+    padding: 30px;
+
+    color: #8995a7;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    text-align: center;
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+
+    .result-item {
+
+        align-items: flex-start;
+
+        flex-wrap: wrap;
+    }
+
+
+    .result-content {
+
+        min-width: calc(100% - 58px);
+    }
+
+
+    .result-actions {
+
+        width: 100%;
+
+        margin-left: 56px;
+
+        padding-top: 3px;
+    }
+
+}
+
+
+@media (max-width: 600px) {
+
+    .search-page-form {
+
+        height: auto;
+
+        padding: 10px;
+
+        flex-wrap: wrap;
+    }
+
+
+    .search-page-form > svg {
+
+        margin-left: 4px;
+    }
+
+
+    .search-page-form input {
+
+        min-width: calc(100% - 40px);
+    }
+
+
+    .search-page-form .button {
+
+        width: 100%;
+    }
+
+
+    .search-results-title {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+
+    .result-list {
+
+        padding: 4px 16px;
+    }
+
+
+    .result-title-row {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 5px;
+    }
+
+
+    .result-actions {
+
+        margin-left: 56px;
+
+        flex-direction: column;
+
+        align-items: stretch;
+    }
+
+
+    .result-view-button,
+    .result-download-button {
+
+        width: 100%;
+    }
+
+}
+/* =========================================================
+   EXCERPT
+========================================================= */
+
+.result-excerpt {
+    width: 100%;
+    margin-top: 14px;
+    padding: 16px 18px;
+    border: 1px solid #e8edf4;
+    border-radius: 11px;
+    background: #f8fafc;
+    box-sizing: border-box;
+}
+
+.result-item {
+    flex-wrap: wrap;
+}
+
+.excerpt-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    color: #5b36d8;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.excerpt-header svg {
+    font-size: 18px;
+}
+
+.result-excerpt p {
+    margin: 0;
+    color: #526078;
+    font-size: 12px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.result-view-button.active {
+    border-color: #d6ccfb;
+    background: #f7f5ff;
+}
+
+.result-view-button svg:last-child {
+    transition: transform 0.2s ease;
+}
+
+.result-view-button svg:last-child.expanded {
+    transform: rotate(180deg);
+}

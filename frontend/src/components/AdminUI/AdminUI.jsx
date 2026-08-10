@@ -4,6 +4,10 @@ import "./AdminUI.css";
 import { getProfile } from "../../utils/storage";
 
 
+/* =========================================================
+   ROLE LABEL
+========================================================= */
+
 export const roleLabel = (role) => ({
     ADMIN: "Administrateur",
     DOCUMENTALIST: "Documentaliste",
@@ -11,12 +15,20 @@ export const roleLabel = (role) => ({
 }[role] || role || "Utilisateur");
 
 
+/* =========================================================
+   ROLE EYEBROW
+========================================================= */
+
 export const roleEyebrow = (role) => ({
     ADMIN: "ADMINISTRATION",
     DOCUMENTALIST: "DOCUMENTALISTE",
     SNRT_USER: "UTILISATEUR"
 }[role] || "UTILISATEUR");
 
+
+/* =========================================================
+   PAGE HEADER
+========================================================= */
 
 export function PageHeader({
     eyebrow,
@@ -64,6 +76,10 @@ export function PageHeader({
 }
 
 
+/* =========================================================
+   STATUS BADGE
+========================================================= */
+
 export function StatusBadge({ value }) {
 
     return (
@@ -78,6 +94,10 @@ export function StatusBadge({ value }) {
 }
 
 
+/* =========================================================
+   MODAL
+========================================================= */
+
 export function Modal({
     title,
     children,
@@ -85,40 +105,57 @@ export function Modal({
 }) {
 
     return (
-        <section
-            className="modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label={title}
-            onMouseDown={(event) => event.stopPropagation()}
+        <div
+            className="modal-backdrop"
+            onMouseDown={onClose}
         >
 
-            <div className="modal-header">
+            <section
+                className="modal"
+                role="dialog"
+                aria-modal="true"
+                aria-label={title}
+                onMouseDown={(event) =>
+                    event.stopPropagation()
+                }
+            >
 
-                <h2>
-                    {title}
-                </h2>
+                <div className="modal-title">
 
-                <button
-                    type="button"
-                    onClick={onClose}
-                    aria-label="Fermer"
-                >
-                    ×
-                </button>
+                    <h2>
+                        {title}
+                    </h2>
 
-            </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        aria-label="Fermer"
+                    >
+                        ×
+                    </button>
 
-            <div className="modal-content">
-                {children}
-            </div>
+                </div>
 
-        </section>
+                <div className="modal-content">
+
+                    {children}
+
+                </div>
+
+            </section>
+
+        </div>
     );
 }
 
 
-export function ErrorNotice({ message }) {
+/* =========================================================
+   ERROR NOTICE
+========================================================= */
+
+export function ErrorNotice({
+    message
+}) {
 
     return message ? (
         <div className="error-notice">
@@ -127,6 +164,10 @@ export function ErrorNotice({ message }) {
     ) : null;
 }
 
+
+/* =========================================================
+   LOADING STATE
+========================================================= */
 
 export function LoadingState() {
 
@@ -138,9 +179,16 @@ export function LoadingState() {
 }
 
 
+/* =========================================================
+   DATE FORMAT
+========================================================= */
+
 export const formatDate = (value) =>
     value
-        ? new Intl.DateTimeFormat("fr-FR", {
-              dateStyle: "medium"
-          }).format(new Date(value))
+        ? new Intl.DateTimeFormat(
+            "fr-FR",
+            {
+                dateStyle: "medium"
+            }
+        ).format(new Date(value))
         : "—";

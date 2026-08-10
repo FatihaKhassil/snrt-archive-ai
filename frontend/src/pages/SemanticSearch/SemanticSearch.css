@@ -739,4 +739,130 @@
         flex-basis: 36px;
     }
 
+    
+
+}
+/* =========================================================
+   SOURCE ACTIONS
+========================================================= */
+
+.source-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   VIEW EXCERPT
+========================================================= */
+
+.source-view-button,
+.source-download-button {
+    height: 40px;
+    padding: 0 14px;
+
+    border: 1px solid #dfe5ef;
+    border-radius: 10px;
+
+    background: #ffffff;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    color: #52627a;
+
+    font-size: 12px;
+    font-weight: 650;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+
+.source-view-button svg,
+.source-download-button svg {
+    font-size: 18px;
+}
+
+
+.source-view-button:hover {
+    background: #f5f3ff;
+    border-color: #cfc5ff;
+    color: #5936d8;
+}
+
+
+.source-view-button.active {
+    background: #f5f3ff;
+    border-color: #cfc5ff;
+    color: #5936d8;
+}
+
+
+/* =========================================================
+   DOWNLOAD
+========================================================= */
+
+.source-download-button {
+    color: #d72831;
+    border-color: #f0d9dc;
+}
+
+
+.source-download-button:hover {
+    background: #fff3f4;
+    border-color: #e7aeb3;
+    color: #c51f29;
+}
+
+
+.source-download-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+
+    .source-main {
+        flex-wrap: wrap;
+    }
+
+    .source-actions {
+        width: 100%;
+        margin-left: 0;
+        justify-content: flex-end;
+        padding-top: 8px;
+    }
+
+}
+
+
+@media (max-width: 560px) {
+
+    .source-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .source-view-button,
+    .source-download-button {
+        width: 100%;
+    }
+
 }
