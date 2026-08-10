@@ -1,403 +1,623 @@
 .semantic-search-page {
-    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
 }
 
 
-/* =========================
+/* =========================================================
    SEARCH PANEL
-========================= */
+========================================================= */
 
 .semantic-search-panel {
-    background: #ffffff;
-    border: 1px solid #e4e8ef;
+    padding: 24px;
+    border: 1px solid #e7ebf2;
     border-radius: 18px;
-    padding: 28px;
-    margin-bottom: 24px;
+    background: #ffffff;
+    box-shadow: 0 6px 22px rgba(15, 23, 42, 0.045);
 }
 
 
 .semantic-search-intro {
     display: flex;
     align-items: center;
-    gap: 18px;
-    margin-bottom: 24px;
+    gap: 15px;
+    margin-bottom: 22px;
 }
 
 
 .semantic-search-icon {
     width: 52px;
     height: 52px;
-    border-radius: 14px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    background: #f1edff;
-    color: #5b35d5;
+    flex: 0 0 52px;
+    border-radius: 15px;
+    color: #5b36d8;
+    background: #f0ebff;
+    display: grid;
+    place-items: center;
 }
 
 
 .semantic-search-icon svg {
-    font-size: 28px;
+    font-size: 27px;
 }
 
 
 .semantic-search-intro h2 {
-    margin: 0 0 5px;
-
-    color: #12233f;
+    margin: 0;
+    color: #17233d;
     font-size: 21px;
+    font-weight: 750;
+    letter-spacing: -0.4px;
 }
 
 
 .semantic-search-intro p {
-    margin: 0;
-
-    color: #70809a;
-    font-size: 14px;
+    margin: 5px 0 0;
+    color: #7b899d;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 
-/* =========================
+/* =========================================================
    SEARCH FORM
-========================= */
+========================================================= */
 
 .semantic-search-form {
     display: flex;
-    gap: 12px;
+    align-items: center;
+    gap: 14px;
 }
 
 
 .semantic-input-wrapper {
-    flex: 1;
-
     height: 54px;
-
+    flex: 1;
+    min-width: 0;
+    padding: 0 17px;
+    border: 1px solid #dfe6ef;
+    border-radius: 12px;
+    background: #ffffff;
     display: flex;
     align-items: center;
-
-    border: 1px solid #dfe4ec;
-    border-radius: 10px;
-
-    background: #ffffff;
-
-    padding: 0 16px;
-
-    transition: border-color 0.2s;
+    gap: 11px;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
 }
 
 
 .semantic-input-wrapper:focus-within {
-    border-color: #5b35d5;
+    border-color: #a88ce8;
+    box-shadow: 0 0 0 3px rgba(91, 54, 216, 0.08);
 }
 
 
-.semantic-input-wrapper svg {
-    color: #8a98ad;
-    margin-right: 12px;
+.semantic-input-wrapper > svg {
+    flex: 0 0 auto;
+    color: #8a9ab0;
+    font-size: 24px;
 }
 
 
 .semantic-input-wrapper input {
     width: 100%;
-
-    border: none;
-    outline: none;
-
-    font-size: 15px;
-    color: #12233f;
-
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    color: #25344d;
     background: transparent;
+    font: inherit;
+    font-size: 14px;
 }
 
 
 .semantic-input-wrapper input::placeholder {
-    color: #9aa7b8;
+    color: #9aa6b6;
 }
 
 
 .semantic-search-button {
     height: 54px;
-
+    min-width: 175px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-
-    gap: 8px;
-
-    min-width: 150px;
+    gap: 9px;
 }
 
 
-/* =========================
-   RESULT
-========================= */
+.semantic-search-button svg {
+    font-size: 20px;
+}
+
+
+/* =========================================================
+   RESULT PANEL
+========================================================= */
 
 .semantic-result-panel {
-    background: #ffffff;
-
-    border: 1px solid #e4e8ef;
+    overflow: hidden;
+    border: 1px solid #e7ebf2;
     border-radius: 18px;
-
-    padding: 28px;
-
-    margin-bottom: 24px;
+    background: #ffffff;
+    box-shadow: 0 6px 22px rgba(15, 23, 42, 0.045);
 }
 
 
-.semantic-result-header {
-    display: flex;
+/* =========================================================
+   RESULT HEADER
+========================================================= */
 
+.semantic-result-header {
+    min-height: 96px;
+    padding: 22px 24px;
+    border-bottom: 1px solid #edf0f4;
+    display: flex;
     align-items: center;
     justify-content: space-between;
-
-    padding-bottom: 22px;
-
-    border-bottom: 1px solid #edf0f4;
+    gap: 20px;
 }
 
 
 .result-label {
     display: block;
-
-    color: #d62828;
-
-    font-size: 12px;
-    font-weight: 700;
-
-    letter-spacing: 1px;
-
     margin-bottom: 6px;
+    color: #df2934;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.1px;
 }
 
 
 .semantic-result-header h2 {
     margin: 0;
-
-    color: #12233f;
-
+    color: #17233d;
     font-size: 22px;
+    font-weight: 750;
+    letter-spacing: -0.5px;
 }
 
 
 .chunks-badge {
+    min-height: 38px;
+    padding: 0 14px;
+    border-radius: 20px;
+    color: #5b36d8;
+    background: #f1edff;
     display: flex;
     align-items: center;
-
     gap: 7px;
-
-    padding: 9px 13px;
-
-    border-radius: 20px;
-
-    background: #f1edff;
-    color: #5b35d5;
-
-    font-size: 13px;
-    font-weight: 600;
+    white-space: nowrap;
+    font-size: 14px;
+    font-weight: 750;
 }
 
 
 .chunks-badge svg {
-    font-size: 18px;
+    font-size: 19px;
 }
 
 
-/* =========================
+.chunks-badge span {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+
+/* =========================================================
    ANSWER
-========================= */
+========================================================= */
 
 .semantic-answer {
-    display: flex;
-
-    gap: 18px;
-
-    margin-top: 24px;
-
-    padding: 24px;
-
+    margin: 22px 24px 26px;
+    padding: 20px;
+    border: 1px solid #edf0f5;
     border-radius: 14px;
-
     background: #f8f9fc;
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
 }
 
 
 .answer-icon {
     width: 42px;
     height: 42px;
-
-    flex-shrink: 0;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 11px;
-
-    background: #5b35d5;
+    flex: 0 0 42px;
+    border-radius: 12px;
     color: #ffffff;
+    background: #5b36d8;
+    display: grid;
+    place-items: center;
+}
+
+
+.answer-icon svg {
+    font-size: 22px;
+}
+
+
+.answer-content {
+    min-width: 0;
+    flex: 1;
 }
 
 
 .answer-content h3 {
-    margin: 0 0 10px;
-
-    color: #12233f;
-
-    font-size: 17px;
+    margin: 1px 0 8px;
+    color: #263650;
+    font-size: 15px;
+    font-weight: 750;
 }
 
 
 .answer-content p {
     margin: 0;
-
-    color: #52647d;
-
+    color: #34425a;
     font-size: 15px;
-
     line-height: 1.8;
-
-    white-space: pre-line;
+    white-space: pre-wrap;
 }
 
 
-/* =========================
+/* =========================================================
    SOURCES
-========================= */
+========================================================= */
 
 .semantic-sources {
-    margin-top: 28px;
+    padding: 0 24px 26px;
 }
 
 
 .sources-header {
+    margin-bottom: 14px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-
-    margin-bottom: 14px;
+    gap: 20px;
 }
 
 
 .sources-header h3 {
     margin: 0;
+    color: #17233d;
+    font-size: 17px;
+    font-weight: 750;
+}
 
-    color: #12233f;
 
+.sources-header p {
+    margin: 4px 0 0;
+    color: #8995a7;
+    font-size: 12px;
+}
+
+
+.sources-count {
+    height: 34px;
+    padding: 0 11px;
+    border: 1px solid #e8e3ff;
+    border-radius: 9px;
+    color: #5b36d8;
+    background: #faf9ff;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 750;
+}
+
+
+.sources-count svg {
+    font-size: 18px;
+}
+
+
+.sources-count span {
+    color: #7e89a0;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   SOURCE CARD
+========================================================= */
+
+.sources-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+
+.source-card {
+    overflow: hidden;
+    border: 1px solid #e8edf3;
+    border-radius: 13px;
+    background: #ffffff;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+
+.source-card:hover {
+    border-color: #dce2eb;
+    box-shadow: 0 5px 16px rgba(15, 23, 42, 0.045);
+}
+
+
+.source-main {
+    min-height: 76px;
+    padding: 13px 14px;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+
+.source-file-icon {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 11px;
+    color: #d72831;
+    background: #fff1f2;
+    display: grid;
+    place-items: center;
+}
+
+
+.source-file-icon svg {
+    font-size: 22px;
+}
+
+
+.source-info {
+    min-width: 0;
+    flex: 1;
+}
+
+
+.source-title-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+
+.source-title-row h4 {
+    overflow: hidden;
+    margin: 0;
+    color: #263650;
+    font-size: 14px;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+.source-number {
+    flex: 0 0 auto;
+    padding: 4px 7px;
+    border-radius: 6px;
+    color: #5b36d8;
+    background: #f1edff;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+
+.source-filename {
+    overflow: hidden;
+    margin: 4px 0 6px;
+    color: #8793a5;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+.source-meta {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+
+.source-meta span {
+    padding: 0 8px;
+    border-right: 1px solid #e0e5ec;
+    color: #7b8799;
+    font-size: 10px;
+}
+
+
+.source-meta span:first-child {
+    padding-left: 0;
+}
+
+
+.source-meta span:last-child {
+    border-right: 0;
+}
+
+
+/* =========================================================
+   VIEW BUTTON
+========================================================= */
+
+.source-view-button {
+    height: 36px;
+    flex: 0 0 auto;
+    padding: 0 9px;
+    border: 1px solid #e2e7ee;
+    border-radius: 8px;
+    color: #65738a;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 10px;
+    font-weight: 650;
+    transition:
+        color 0.2s ease,
+        border-color 0.2s ease,
+        background 0.2s ease;
+}
+
+
+.source-view-button svg {
     font-size: 17px;
 }
 
 
-.sources-header span {
-    color: #8492a6;
-
-    font-size: 13px;
+.source-view-button:hover,
+.source-view-button.active {
+    border-color: #d8cdfc;
+    color: #5b36d8;
+    background: #f8f6ff;
 }
 
 
+/* =========================================================
+   EXCERPT
+========================================================= */
+
+.source-excerpt {
+    margin: 0 14px 14px;
+    padding: 14px 16px;
+    border-top: 1px solid #edf0f4;
+    border-radius: 9px;
+    background: #f8fafc;
+}
+
+
+.excerpt-label {
+    margin-bottom: 9px;
+    color: #718096;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+
+.excerpt-label svg {
+    color: #5b36d8;
+    font-size: 16px;
+}
+
+
+.source-excerpt p {
+    margin: 0;
+    color: #46546a;
+    font-size: 12px;
+    line-height: 1.85;
+    text-align: right;
+}
+
+
+/* =========================================================
+   EMPTY SOURCES
+========================================================= */
+
 .sources-empty {
     min-height: 110px;
-
+    border: 1px dashed #dce3ec;
+    border-radius: 12px;
+    color: #8b98aa;
     display: flex;
     flex-direction: column;
-
     align-items: center;
     justify-content: center;
-
-    border: 1px dashed #d8deea;
-    border-radius: 12px;
-
-    color: #8997aa;
-
-    text-align: center;
+    gap: 8px;
 }
 
 
 .sources-empty svg {
-    font-size: 28px;
-
-    margin-bottom: 8px;
+    font-size: 27px;
 }
 
 
 .sources-empty p {
     margin: 0;
-
-    font-size: 13px;
+    font-size: 12px;
 }
 
 
-/* =========================
-   EMPTY
-========================= */
+/* =========================================================
+   EMPTY STATE
+========================================================= */
 
 .semantic-empty {
-    min-height: 260px;
-
+    min-height: 220px;
+    padding: 30px;
+    border: 1px solid #e7ebf2;
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 6px 22px rgba(15, 23, 42, 0.035);
     display: flex;
     flex-direction: column;
-
     align-items: center;
     justify-content: center;
-
-    background: #ffffff;
-
-    border: 1px solid #e4e8ef;
-    border-radius: 18px;
-
     text-align: center;
 }
 
 
 .semantic-empty-icon {
-    width: 60px;
-    height: 60px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 16px;
-
-    background: #f1edff;
-    color: #5b35d5;
-
-    margin-bottom: 15px;
+    width: 52px;
+    height: 52px;
+    margin-bottom: 12px;
+    border-radius: 15px;
+    color: #5b36d8;
+    background: #f0ebff;
+    display: grid;
+    place-items: center;
 }
 
 
 .semantic-empty-icon svg {
-    font-size: 30px;
+    font-size: 26px;
 }
 
 
 .semantic-empty h2 {
-    margin: 0 0 8px;
-
-    color: #12233f;
-
-    font-size: 20px;
+    margin: 0;
+    color: #263650;
+    font-size: 17px;
+    font-weight: 750;
 }
 
 
 .semantic-empty p {
-    margin: 0;
-
-    color: #8492a6;
-
-    font-size: 14px;
+    margin: 6px 0 0;
+    color: #8a96a8;
+    font-size: 12px;
 }
 
 
-/* =========================
+/* =========================================================
    RESPONSIVE
-========================= */
+========================================================= */
 
-@media (max-width: 800px) {
+@media (max-width: 850px) {
 
     .semantic-search-form {
         flex-direction: column;
+        align-items: stretch;
     }
 
     .semantic-search-button {
@@ -405,15 +625,118 @@
     }
 
     .semantic-result-header {
-        flex-direction: column;
         align-items: flex-start;
-        gap: 15px;
+        flex-direction: column;
+    }
+
+    .source-main {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .source-info {
+        min-width: calc(100% - 58px);
+    }
+
+    .source-view-button {
+        margin-left: 55px;
+    }
+
+}
+
+
+@media (max-width: 600px) {
+
+    .semantic-search-page {
+        gap: 16px;
+    }
+
+    .semantic-search-panel {
+        padding: 18px;
+        border-radius: 14px;
+    }
+
+    .semantic-search-intro {
+        align-items: flex-start;
+    }
+
+    .semantic-search-intro h2 {
+        font-size: 18px;
+    }
+
+    .semantic-search-intro p {
+        font-size: 12px;
+    }
+
+    .semantic-result-header {
+        padding: 18px;
+    }
+
+    .semantic-result-header h2 {
+        font-size: 19px;
+    }
+
+    .semantic-answer {
+        margin: 18px;
+        padding: 16px;
+    }
+
+    .semantic-sources {
+        padding: 0 18px 20px;
     }
 
     .sources-header {
-        flex-direction: column;
         align-items: flex-start;
-        gap: 6px;
+        flex-direction: column;
+    }
+
+    .source-title-row {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .source-view-button {
+        width: calc(100% - 55px);
+        margin-left: 55px;
+        justify-content: center;
+    }
+
+}
+
+
+@media (max-width: 450px) {
+
+    .semantic-search-intro {
+        gap: 10px;
+    }
+
+    .semantic-search-icon {
+        width: 44px;
+        height: 44px;
+        flex-basis: 44px;
+    }
+
+    .semantic-search-icon svg {
+        font-size: 22px;
+    }
+
+    .semantic-input-wrapper {
+        height: 50px;
+    }
+
+    .semantic-search-button {
+        height: 50px;
+    }
+
+    .semantic-answer {
+        gap: 10px;
+    }
+
+    .answer-icon {
+        width: 36px;
+        height: 36px;
+        flex-basis: 36px;
     }
 
 }

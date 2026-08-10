@@ -6,23 +6,18 @@ from app.repositories.document_repository import DocumentRepository
 class RagService:
 
     def __init__(self):
+
         self.chroma_service = ChromaService()
         self.llm_service = LLMService()
         self.document_repository = DocumentRepository()
 
     async def ask(self, question: str) -> dict:
-        """
-        Recherche les passages pertinents dans ChromaDB,
-        construit un contexte pour le LLM,
-        génère une réponse naturelle,
-        puis récupère les documents sources depuis MongoDB.
-        """
 
         print("\n========== RAG REQUEST ==========")
         print(f"Question : {question}")
 
         # ============================================================
-        # 1. RECHERCHE SEMANTIQUE
+        # 1. RECHERCHE SEMANTIQUE DANS CHROMADB
         # ============================================================
 
         results = await self.chroma_service.search(
@@ -35,6 +30,7 @@ class RagService:
         )
 
         if not results:
+
             return {
                 "answer": "لم أجد هذه المعلومة في الأرشيف.",
                 "chunks": 0,
@@ -42,7 +38,7 @@ class RagService:
             }
 
         # ============================================================
-        # 2. SUPPRESSION DES DOUBLONS
+        # 2. NETTOYAGE ET SUPPRESSION DES DOUBLONS
         # ============================================================
 
         unique_results = []
@@ -59,10 +55,10 @@ class RagService:
                     or ""
                 )
 
-                metadata = result.get(
-                    "metadata",
-                    {}
-                ) or {}
+                metadata = (
+                    result.get("metadata")
+                    or {}
+                )
 
             else:
 
@@ -72,11 +68,14 @@ class RagService:
                     ""
                 )
 
-                metadata = getattr(
-                    result,
-                    "metadata",
-                    {}
-                ) or {}
+                metadata = (
+                    getattr(
+                        result,
+                        "metadata",
+                        {}
+                    )
+                    or {}
+                )
 
             text = str(text).strip()
 
@@ -95,7 +94,7 @@ class RagService:
                 }
             )
 
-            # On garde au maximum 3 passages pertinents.
+            # Maximum 3 passages utilisés
             if len(unique_results) >= 3:
                 break
 
@@ -104,6 +103,7 @@ class RagService:
         )
 
         if not unique_results:
+
             return {
                 "answer": "لم أجد هذه المعلومة في الأرشيف.",
                 "chunks": 0,
@@ -111,12 +111,8 @@ class RagService:
             }
 
         # ============================================================
-        # 3. AFFICHER LES CHUNKS
+        # 3. IDENTIFICATION DES DOCUMENTS
         # ============================================================
-
-        print(
-            "\n========== CHUNKS ==========\n"
-        )
 
         document_ids = []
 
@@ -129,26 +125,28 @@ class RagService:
             metadata = item["metadata"]
 
             print(
-                f"----- Chunk {index} -----"
+                f"\n----- Chunk {index} -----"
             )
 
             print(
-                f"Metadata: {metadata}"
+                f"Metadata : {metadata}"
             )
 
-            print(text)
-            print()
+            print(
+                f"Text : {text}"
+            )
 
             document_id = metadata.get(
                 "document_id"
             )
 
             if document_id:
+
                 document_ids.append(
                     str(document_id)
                 )
 
-        # Supprimer les doublons d'IDs.
+        # Suppression des IDs en double
         document_ids = list(
             dict.fromkeys(
                 document_ids
@@ -156,10 +154,10 @@ class RagService:
         )
 
         # ============================================================
-        # 4. CONSTRUIRE LE CONTEXTE
+        # 4. CONSTRUCTION DU CONTEXTE
         # ============================================================
 
-        MAX_CONTEXT = 4000
+        MAX_CONTEXT = 6000
 
         context_parts = []
         current_length = 0
@@ -179,16 +177,15 @@ class RagService:
             if remaining <= 0:
                 break
 
-            # Éviter de couper inutilement un passage.
             if len(text) > remaining:
-
                 text = text[:remaining]
 
-            passage = f"""
---- PASSAGE {index} ---
-{text}
---- FIN PASSAGE {index} ---
-"""
+            passage = (
+                f"\n"
+                f"================ PASSAGE {index} ================\n"
+                f"{text}\n"
+                f"============== FIN PASSAGE {index} ==============\n"
+            )
 
             context_parts.append(
                 passage
@@ -209,49 +206,101 @@ class RagService:
         prompt = f"""
 أنت مساعد ذكي متخصص في البحث داخل أرشيف SNRT.
 
-مهمتك هي الإجابة عن سؤال المستخدم اعتماداً حصراً على المعلومات الموجودة في السياق.
+مهمتك هي الإجابة عن سؤال المستخدم اعتماداً فقط على المعلومات
+الموجودة في المقاطع التي تم استرجاعها من أرشيف SNRT.
 
-القواعد:
+========================
+قواعد مهمة جداً
+========================
 
-- استخدم المعلومات الموجودة في السياق فقط.
-- لا تضف أي معلومة من معرفتك الخاصة.
-- لا تخترع أي معلومة.
-- إذا كانت المعلومات موجودة في السياق، يجب أن تستخدمها للإجابة.
-- أجب بنفس لغة السؤال.
-- أجب بطريقة طبيعية وواضحة ومترابطة.
-- اجعل الإجابة كاملة وليست مجرد جزء من الجملة الموجودة في النص.
-- أعد صياغة المعلومات بدلاً من نسخ النص حرفياً.
-- حافظ على المعنى الأصلي للمعلومات.
-- إذا كان السؤال عن حدث، اشرح باختصار ما حدث.
-- إذا كان السؤال عن سبب، اذكر السبب بوضوح.
-- إذا كان السؤال عن شخص، اذكر المعلومات المتعلقة به الموجودة في السياق فقط.
-- إذا كانت الإجابة موزعة بين عدة مقاطع، اجمع المعلومات المرتبطة بالسؤال في إجابة واحدة.
-- لا تكرر السؤال.
-- لا تبدأ بعبارات مثل "وفقاً للنص" أو "حسب الوثيقة" إلا إذا كان ذلك ضرورياً.
-- لا تستخدم كلمات أجنبية إذا لم تكن موجودة في السؤال أو السياق.
-- لا تقل "لم أجد هذه المعلومة في الأرشيف" إذا كانت الإجابة موجودة في السياق.
-- إذا كانت الإجابة غير موجودة فعلاً في السياق، قل فقط:
-"لم أجد هذه المعلومة في الأرشيف."
+1. استخدم المعلومات الموجودة في المقاطع فقط.
 
-السياق:
+2. لا تضف أي معلومة من معرفتك الخاصة.
+
+3. لا تخترع أسماء أو أحداثاً أو تفاصيل غير موجودة في المقاطع.
+
+4. اقرأ جميع المقاطع قبل الإجابة.
+
+5. قد تكون بعض المقاطع غير مرتبطة مباشرة بالسؤال.
+   تجاهل أي مقطع لا يحتوي على معلومات تساعد في الإجابة.
+
+6. إذا كانت المعلومة المطلوبة موجودة في أكثر من مقطع،
+   اجمع المعلومات المرتبطة بها في إجابة واحدة متماسكة.
+
+7. لا تكتفِ بكلمة واحدة إذا كان السياق يسمح بتقديم إجابة
+   أكثر وضوحاً وتفيد المستخدم.
+
+8. أجب بجملة كاملة أو عدة جمل قصيرة حسب طبيعة السؤال.
+
+9. إذا كان السؤال عن شخص، اذكر اسمه ودوره أو علاقته بالحدث
+   إذا كانت هذه المعلومات موجودة في السياق.
+
+10. إذا كان السؤال عن حدث، اشرح الحدث باختصار وبشكل واضح.
+
+11. إذا كان السؤال عن سبب أو نتيجة، اذكر السبب أو النتيجة
+    الموجودة في السياق.
+
+12. إذا كان السؤال يتطلب مقارنة بين أشخاص أو أحداث،
+    استخدم المعلومات الموجودة في المقاطع للمقارنة.
+
+13. لا تكرر السؤال في الإجابة.
+
+14. لا تبدأ الإجابة بعبارات مثل:
+    "وفقاً للنص"
+    أو
+    "حسب الوثيقة"
+    إلا إذا كان ذلك ضرورياً.
+
+15. أجب بنفس لغة السؤال.
+
+16. إذا كان السؤال باللغة العربية، أجب باللغة العربية.
+
+17. إذا كان السؤال باللغة الفرنسية، أجب باللغة الفرنسية.
+
+18. إذا كانت الإجابة موجودة بوضوح في السياق،
+    لا تقل إنك لا تعرف الإجابة.
+
+19. إذا كانت المعلومات الموجودة في المقاطع لا تسمح بالإجابة
+    عن السؤال، أجب فقط:
+
+    "لم أجد هذه المعلومة في الأرشيف."
+
+20. لا تستخدم معلومات خارج المقاطع المقدمة لك.
+
+========================
+المقاطع المسترجعة من الأرشيف
+========================
 
 {context}
 
-السؤال:
+========================
+سؤال المستخدم
+========================
 
 {question}
+
+========================
+تعليمات الإجابة
+========================
+
+حلل السؤال أولاً، ثم ابحث عن المعلومات المتعلقة به داخل
+المقاطع.
+
+بعد ذلك قدم إجابة واضحة ومباشرة وكاملة.
+
+لا تذكر المقاطع أو أرقامها في الإجابة.
 
 الإجابة:
 """
 
         print(
-            "\n========== PROMPT ENVOYÉ À LLAMA =========="
+            "\n========== PROMPT ENVOYÉ AU LLM ==========\n"
         )
 
         print(prompt)
 
         print(
-            "========== FIN PROMPT ==========\n"
+            "\n========== FIN PROMPT ==========\n"
         )
 
         # ============================================================
@@ -276,7 +325,7 @@ class RagService:
         print(answer)
 
         # ============================================================
-        # 7. RÉCUPÉRER LES DOCUMENTS SOURCES
+        # 7. RÉCUPÉRATION DES DOCUMENTS SOURCES
         # ============================================================
 
         print(
@@ -299,19 +348,22 @@ class RagService:
                 )
 
                 print(
-                    f"Documents MongoDB récupérés : {len(documents)}"
+                    f"Documents MongoDB récupérés : "
+                    f"{len(documents)}"
                 )
 
-                # Dictionnaire pour retrouver rapidement
-                # un document par son ID.
                 documents_by_id = {
-                    str(document.get("_id")): document
+
+                    str(document.get("_id")):
+                    document
+
                     for document in documents
                 }
 
                 for item in unique_results:
 
                     metadata = item["metadata"]
+
                     document_id = metadata.get(
                         "document_id"
                     )
@@ -323,15 +375,20 @@ class RagService:
                         document_id
                     )
 
-                    document = documents_by_id.get(
-                        document_id
+                    document = (
+                        documents_by_id.get(
+                            document_id
+                        )
                     )
 
                     if not document:
+
                         print(
-                            f"⚠️ Document MongoDB introuvable : "
+                            f"⚠️ Document MongoDB "
+                            f"introuvable : "
                             f"{document_id}"
                         )
+
                         continue
 
                     filename = (
@@ -359,23 +416,29 @@ class RagService:
                     )
 
                     source = {
-                        "document_id": document_id,
-                        "title": title,
-                        "filename": filename,
-                        "file_type": (
+
+                        "document_id":
+                            document_id,
+
+                        "title":
+                            title,
+
+                        "filename":
+                            filename,
+
+                        "file_type":
                             document.get(
                                 "file_type"
-                            )
-                            or ""
-                        ),
+                            ) or "",
 
-                        # Passage exact utilisé par le RAG.
-                        "excerpt": item["text"]
+                        "excerpt":
+                            item["text"]
                     }
 
                     if document.get(
                         "mime_type"
                     ):
+
                         source["mime_type"] = (
                             document[
                                 "mime_type"
@@ -385,6 +448,7 @@ class RagService:
                     if document.get(
                         "file_size"
                     ) is not None:
+
                         source["file_size"] = (
                             document[
                                 "file_size"
@@ -394,6 +458,7 @@ class RagService:
                     if document.get(
                         "created_at"
                     ):
+
                         source["created_at"] = str(
                             document[
                                 "created_at"
@@ -415,23 +480,27 @@ class RagService:
                     f"{type(e).__name__}: {e}"
                 )
 
-        print(
-            "\n========== SOURCES =========="
-        )
-
-        print(sources)
-
         # ============================================================
         # 8. RÉPONSE FINALE
         # ============================================================
 
         result = {
-            "answer": answer,
-            "chunks": len(
-                unique_results
-            ),
-            "sources": sources
+
+            "answer":
+                answer,
+
+            "chunks":
+                len(unique_results),
+
+            "sources":
+                sources
         }
+
+        print(
+            "\n========== SOURCES =========="
+        )
+
+        print(sources)
 
         print(
             "\n========== RAG RESPONSE =========="

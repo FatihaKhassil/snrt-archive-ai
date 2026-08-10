@@ -13,6 +13,11 @@ import RagService from "../../services/ragService";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
+import KeyboardArrowUpRoundedIcon from "@mui/icons-material/KeyboardArrowUpRounded";
+import AudiotrackRoundedIcon from "@mui/icons-material/AudiotrackRounded";
+import SourceRoundedIcon from "@mui/icons-material/SourceRounded";
 
 import "./SemanticSearch.css";
 
@@ -24,6 +29,8 @@ function SemanticSearch() {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+
+    const [openSources, setOpenSources] = useState({});
 
 
     const submit = async (event) => {
@@ -41,6 +48,7 @@ function SemanticSearch() {
             setLoading(true);
             setError("");
             setResult(null);
+            setOpenSources({});
 
             const response = await RagService.ask(value);
 
@@ -63,6 +71,19 @@ function SemanticSearch() {
     };
 
 
+    const toggleSource = (index) => {
+
+        setOpenSources((previous) => ({
+            ...previous,
+            [index]: !previous[index]
+        }));
+
+    };
+
+
+    const sources = result?.sources || [];
+
+
     return (
 
         <Layout>
@@ -76,7 +97,7 @@ function SemanticSearch() {
 
 
                 {/* =========================
-                    SEARCH BOX
+                    SEARCH PANEL
                 ========================= */}
 
                 <section className="semantic-search-panel">
@@ -121,6 +142,7 @@ function SemanticSearch() {
                                 }
                                 placeholder="Posez votre question sur les archives..."
                                 aria-label="Question de recherche sémantique"
+                                dir="auto"
                             />
 
                         </div>
@@ -155,7 +177,7 @@ function SemanticSearch() {
 
                 {loading && (
 
-                    <section className="panel semantic-result-panel">
+                    <section className="semantic-result-panel">
 
                         <LoadingState />
 
@@ -172,6 +194,9 @@ function SemanticSearch() {
 
                     <section className="semantic-result-panel">
 
+
+                        {/* RESULT HEADER */}
+
                         <div className="semantic-result-header">
 
                             <div>
@@ -186,16 +211,25 @@ function SemanticSearch() {
 
                             </div>
 
+
                             <div className="chunks-badge">
 
-                                <DescriptionOutlinedIcon />
+                                <SourceRoundedIcon />
 
-                                {result.chunks || 0} sources analysées
+                                {sources.length || result.chunks || 0}
+
+                                <span>
+                                    sources analysées
+                                </span>
 
                             </div>
 
                         </div>
 
+
+                        {/* =========================
+                            ANSWER
+                        ========================= */}
 
                         <div className="semantic-answer">
 
@@ -211,7 +245,7 @@ function SemanticSearch() {
                                     Réponse
                                 </h3>
 
-                                <p>
+                                <p dir="auto">
                                     {result.answer}
                                 </p>
 
@@ -221,33 +255,220 @@ function SemanticSearch() {
 
 
                         {/* =========================
-                            SOURCES - PREPARATION
+                            SOURCES
                         ========================= */}
 
                         <div className="semantic-sources">
 
+
                             <div className="sources-header">
 
-                                <h3>
-                                    Documents utilisés
-                                </h3>
+                                <div>
 
-                                <span>
-                                    Les documents sources seront affichés ici.
-                                </span>
+                                    <h3>
+                                        Documents utilisés
+                                    </h3>
+
+                                    <p>
+                                        Documents ayant contribué à la réponse.
+                                    </p>
+
+                                </div>
+
+
+                                <div className="sources-count">
+
+                                    <DescriptionOutlinedIcon />
+
+                                    {sources.length}
+
+                                    <span>
+                                        document{sources.length !== 1 ? "s" : ""}
+                                    </span>
+
+                                </div>
 
                             </div>
 
-                            <div className="sources-empty">
 
-                                <DescriptionOutlinedIcon />
+                            {sources.length > 0 ? (
 
-                                <p>
-                                    Les extraits des documents pertinents
-                                    seront affichés ici.
-                                </p>
+                                <div className="sources-list">
 
-                            </div>
+                                    {sources.map((source, index) => {
+
+                                        const isOpen =
+                                            !!openSources[index];
+
+                                        return (
+
+                                            <article
+                                                className="source-card"
+                                                key={
+                                                    source.document_id ||
+                                                    `${source.title}-${index}`
+                                                }
+                                            >
+
+
+                                                {/* SOURCE TOP */}
+
+                                                <div className="source-main">
+
+
+                                                    <div className="source-file-icon">
+
+                                                        {source.file_type === "audio" ? (
+                                                            <AudiotrackRoundedIcon />
+                                                        ) : (
+                                                            <DescriptionOutlinedIcon />
+                                                        )}
+
+                                                    </div>
+
+
+                                                    <div className="source-info">
+
+                                                        <div className="source-title-row">
+
+                                                            <h4>
+                                                                {source.title ||
+                                                                    source.filename ||
+                                                                    "Document sans titre"}
+                                                            </h4>
+
+                                                            <span className="source-number">
+                                                                SOURCE {index + 1}
+                                                            </span>
+
+                                                        </div>
+
+
+                                                        <p className="source-filename">
+
+                                                            {source.filename ||
+                                                                "Fichier archive"}
+
+                                                        </p>
+
+
+                                                        <div className="source-meta">
+
+                                                            <span>
+
+                                                                {source.file_type === "audio"
+                                                                    ? "Audio"
+                                                                    : "Document"}
+
+                                                            </span>
+
+
+                                                            {source.mime_type && (
+
+                                                                <span>
+                                                                    {source.mime_type}
+                                                                </span>
+
+                                                            )}
+
+
+                                                            {source.file_size && (
+
+                                                                <span>
+                                                                    {Math.round(
+                                                                        source.file_size / 1024
+                                                                    )} KB
+                                                                </span>
+
+                                                            )}
+
+                                                        </div>
+
+                                                    </div>
+
+
+                                                    {/* VIEW EXCERPT */}
+
+                                                    <button
+                                                        type="button"
+                                                        className={
+                                                            `source-view-button ${
+                                                                isOpen
+                                                                    ? "active"
+                                                                    : ""
+                                                            }`
+                                                        }
+                                                        onClick={() =>
+                                                            toggleSource(index)
+                                                        }
+                                                    >
+
+                                                        <VisibilityOutlinedIcon />
+
+                                                        <span>
+                                                            {isOpen
+                                                                ? "Masquer"
+                                                                : "Voir l'extrait"}
+                                                        </span>
+
+                                                        {isOpen ? (
+                                                            <KeyboardArrowUpRoundedIcon />
+                                                        ) : (
+                                                            <KeyboardArrowDownRoundedIcon />
+                                                        )}
+
+                                                    </button>
+
+                                                </div>
+
+
+                                                {/* EXCERPT */}
+
+                                                {isOpen && source.excerpt && (
+
+                                                    <div
+                                                        className="source-excerpt"
+                                                        dir="auto"
+                                                    >
+
+                                                        <div className="excerpt-label">
+
+                                                            <DescriptionOutlinedIcon />
+
+                                                            Extrait du document
+
+                                                        </div>
+
+
+                                                        <p>
+                                                            {source.excerpt}
+                                                        </p>
+
+                                                    </div>
+
+                                                )}
+
+                                            </article>
+
+                                        );
+
+                                    })}
+
+                                </div>
+
+                            ) : (
+
+                                <div className="sources-empty">
+
+                                    <DescriptionOutlinedIcon />
+
+                                    <p>
+                                        Aucun document source disponible.
+                                    </p>
+
+                                </div>
+
+                            )}
 
                         </div>
 
@@ -275,8 +496,8 @@ function SemanticSearch() {
                         </h2>
 
                         <p>
-                            Exemple : « Que s'est-il passé lors de
-                            l'attaque de la ville ? »
+                            Exemple : « Qui était le chef de l'équipe
+                            de Four dans le jeu ? »
                         </p>
 
                     </section>
@@ -288,6 +509,7 @@ function SemanticSearch() {
         </Layout>
 
     );
+
 }
 
 
