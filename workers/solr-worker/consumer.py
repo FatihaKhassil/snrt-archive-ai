@@ -1,8 +1,16 @@
 import asyncio
 import json
+import time
 
 from aiokafka import AIOKafkaConsumer
 from aiokafka.errors import KafkaConnectionError
+
+from prometheus_client import (
+    Counter,
+    Gauge,
+    Histogram,
+    start_http_server
+)
 
 from topics import LLM_COMPLETED
 
@@ -14,6 +22,50 @@ KAFKA_BOOTSTRAP_SERVERS = "kafka:9092"
 TOPIC = LLM_COMPLETED
 
 
+# ============================================================
+# PROMETHEUS METRICS
+# ============================================================
+
+documents_received = Counter(
+    "documents_received_total",
+    "Total number of documents received by Solr worker"
+)
+
+documents_processed = Counter(
+    "documents_processed_total",
+    "Total number of documents processed by Solr worker"
+)
+
+documents_success = Counter(
+    "documents_success_total",
+    "Total number of successfully indexed documents"
+)
+
+documents_failed = Counter(
+    "documents_failed_total",
+    "Total number of failed Solr indexation documents"
+)
+
+documents_processing = Gauge(
+    "documents_processing",
+    "Number of documents currently being indexed in Solr"
+)
+
+solr_indexation_duration = Histogram(
+    "solr_indexation_duration_seconds",
+    "Solr document indexation duration in seconds"
+)
+
+worker_errors = Counter(
+    "worker_errors_total",
+    "Total number of Solr worker errors"
+)
+
+
+# ============================================================
+# KAFKA CONSUMER
+# ============================================================
+
 async def create_consumer():
 
     while True:
@@ -22,7 +74,10 @@ async def create_consumer():
 
         try:
 
-            print("⏳ Connecting to Kafka...", flush=True)
+            print(
+                "⏳ Connecting to Kafka...",
+                flush=True
+            )
 
             consumer = AIOKafkaConsumer(
                 TOPIC,
@@ -53,20 +108,36 @@ async def create_consumer():
 
                 continue
 
-            print("🔎 Solr Worker started...", flush=True)
-            print("Waiting for LLM results...", flush=True)
+            print(
+                "🔎 Solr Worker started...",
+                flush=True
+            )
+
+            print(
+                "Waiting for LLM results...",
+                flush=True
+            )
 
             return consumer
 
         except KafkaConnectionError as e:
 
-            print(f"⏳ Kafka not ready: {e}", flush=True)
+            print(
+                f"⏳ Kafka not ready: {e}",
+                flush=True
+            )
+
+            worker_errors.inc()
 
             if consumer:
                 await consumer.stop()
 
             await asyncio.sleep(5)
 
+
+# ============================================================
+# CONSUMER
+# ============================================================
 
 async def consume():
 
@@ -80,83 +151,166 @@ async def consume():
 
         async for message in consumer:
 
-            print("\n📩 New LLM result received", flush=True)
+            documents_received.inc()
 
-            data = json.loads(
-                message.value.decode("utf-8")
-            )
+            documents_processing.inc()
 
-            document_id = data["document_id"]
+            start_time = time.perf_counter()
 
-            print(
-                f"Document ID : {document_id}",
-                flush=True
-            )
-
-            print(
-                "📄 Loading document from MongoDB...",
-                flush=True
-            )
-
-            document = await repository.get_document(
-                document_id
-            )
-
-            if document is None:
+            try:
 
                 print(
-                    "❌ Document not found",
+                    "\n📩 New LLM result received",
                     flush=True
                 )
 
-                continue
+                data = json.loads(
+                    message.value.decode("utf-8")
+                )
 
-            solr_document = {
+                document_id = data.get(
+                    "document_id"
+                )
 
-                "id": str(document["_id"]),
+                print(
+                    f"Document ID : {document_id}",
+                    flush=True
+                )
 
-                "title": document.get("title"),
+                print(
+                    "📄 Loading document from MongoDB...",
+                    flush=True
+                )
 
-                "transcription": document.get("transcription"),
+                document = await repository.get_document(
+                    document_id
+                )
 
-                "summary": document.get(
-                    "ai_metadata",
-                    {}
-                ).get("summary"),
+                if document is None:
 
-                "keywords": document.get(
-                    "ai_metadata",
-                    {}
-                ).get("keywords", [])
+                    print(
+                        "❌ Document not found",
+                        flush=True
+                    )
 
-            }
+                    documents_failed.inc()
 
-            print(
-                "📦 Sending document to Solr...",
-                flush=True
-            )
+                    continue
 
-            await asyncio.to_thread(
+                solr_document = {
 
-                solr.index_document,
+                    "id": str(
+                        document["_id"]
+                    ),
 
-                solr_document
+                    "title": document.get(
+                        "title"
+                    ),
 
-            )
+                    "transcription": document.get(
+                        "transcription"
+                    ),
 
-            print(
-                "✅ Indexed in Solr",
-                flush=True
-            )
+                    "summary": document.get(
+                        "ai_metadata",
+                        {}
+                    ).get(
+                        "summary"
+                    ),
 
-            await repository.update_solr_status(
-                document_id
-            )
+                    "keywords": document.get(
+                        "ai_metadata",
+                        {}
+                    ).get(
+                        "keywords",
+                        []
+                    )
 
-            print(
-                "✅ MongoDB updated",
-                flush=True
-            )
+                }
+
+                print(
+                    "📦 Sending document to Solr...",
+                    flush=True
+                )
+
+                # ------------------------------------------------
+                # SOLR INDEXATION TIMER
+                # ------------------------------------------------
+
+                solr_start = time.perf_counter()
+
+                await asyncio.to_thread(
+                    solr.index_document,
+                    solr_document
+                )
+
+                solr_time = (
+                    time.perf_counter()
+                    - solr_start
+                )
+
+                solr_indexation_duration.observe(
+                    solr_time
+                )
+
+                print(
+                    f"⏱️ Solr indexation duration: "
+                    f"{solr_time:.2f}s",
+                    flush=True
+                )
+
+                print(
+                    "✅ Indexed in Solr",
+                    flush=True
+                )
+
+                # ------------------------------------------------
+                # UPDATE MONGODB
+                # ------------------------------------------------
+
+                await repository.update_solr_status(
+                    document_id
+                )
+
+                print(
+                    "✅ MongoDB updated",
+                    flush=True
+                )
+
+                total_time = (
+                    time.perf_counter()
+                    - start_time
+                )
+
+                print(
+                    f"⏱️ Total Solr processing: "
+                    f"{total_time:.2f}s",
+                    flush=True
+                )
+
+                documents_success.inc()
+
+                print(
+                    "✅ Solr document processed successfully",
+                    flush=True
+                )
+
+            except Exception as e:
+
+                documents_failed.inc()
+
+                worker_errors.inc()
+
+                print(
+                    f"❌ Error processing Solr document: {e}",
+                    flush=True
+                )
+
+            finally:
+
+                documents_processed.inc()
+
+                documents_processing.dec()
 
     finally:
 
@@ -168,7 +322,18 @@ async def consume():
         )
 
 
+# ============================================================
+# APPLICATION START
+# ============================================================
+
 if __name__ == "__main__":
+
+    start_http_server(8000)
+
+    print(
+        "📊 Prometheus metrics available on port 8000",
+        flush=True
+    )
 
     asyncio.run(
         consume()

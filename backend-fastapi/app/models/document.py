@@ -17,5 +17,3 @@ class ProcessingStatus:
         self.embedding = False
 
         self.indexation = False
-
-        self.fingerprint = False
