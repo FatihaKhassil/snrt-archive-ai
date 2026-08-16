@@ -1,8 +1,16 @@
 import asyncio
 import json
+import time
 
 from aiokafka import AIOKafkaConsumer
 from aiokafka.errors import KafkaConnectionError
+
+from prometheus_client import (
+    Counter,
+    Gauge,
+    Histogram,
+    start_http_server
+)
 
 from kafka_producer import kafka_producer
 from topics import (
@@ -17,6 +25,50 @@ from services.chroma_service import ChromaService
 KAFKA_BOOTSTRAP_SERVERS = "kafka:9092"
 TOPIC = LLM_COMPLETED
 
+
+# ============================================================
+# PROMETHEUS METRICS
+# ============================================================
+
+documents_received = Counter(
+    "documents_received_total",
+    "Total number of documents received by embedding worker"
+)
+
+documents_processed = Counter(
+    "documents_processed_total",
+    "Total number of documents processed by embedding worker"
+)
+
+documents_success = Counter(
+    "documents_success_total",
+    "Total number of successfully embedded documents"
+)
+
+documents_failed = Counter(
+    "documents_failed_total",
+    "Total number of failed embedding documents"
+)
+
+documents_processing = Gauge(
+    "documents_processing",
+    "Number of documents currently being embedded"
+)
+
+embedding_duration = Histogram(
+    "embedding_duration_seconds",
+    "Embedding and ChromaDB storage duration in seconds"
+)
+
+worker_errors = Counter(
+    "worker_errors_total",
+    "Total number of worker errors"
+)
+
+
+# ============================================================
+# KAFKA CONSUMER
+# ============================================================
 
 async def create_consumer():
 
@@ -84,12 +136,18 @@ async def create_consumer():
                 flush=True
             )
 
+            worker_errors.inc()
+
             if consumer:
 
                 await consumer.stop()
 
             await asyncio.sleep(5)
 
+
+# ============================================================
+# CONSUMER
+# ============================================================
 
 async def consume():
 
@@ -107,101 +165,199 @@ async def consume():
 
         async for message in consumer:
 
-            print(
-                "\n📩 New LLM result received",
-                flush=True
-            )
+            documents_received.inc()
 
-            data = json.loads(
+            documents_processing.inc()
 
-                message.value.decode("utf-8")
+            start_time = time.perf_counter()
 
-            )
-
-            document_id = data.get(
-
-                "document_id"
-
-            )
-
-            print(
-                "Document ID :",
-                document_id,
-                flush=True
-            )
-
-            print(
-                "📄 Loading transcription...",
-                flush=True
-            )
-
-            transcription = await repository.get_transcription(
-
-                document_id
-
-            )
-
-            if not transcription:
+            try:
 
                 print(
-                    "❌ Transcription not found",
+                    "\n📩 New LLM result received",
                     flush=True
                 )
 
-                continue
+                data = json.loads(
 
-            print(
-                "✂ Splitting text...",
-                flush=True
-            )
+                    message.value.decode("utf-8")
 
-            chunks = splitter.split(
+                )
 
-                transcription
+                document_id = data.get(
 
-            )
+                    "document_id"
 
-            print(
-                f"✅ {len(chunks)} chunks created",
-                flush=True
-            )
+                )
 
-            print(
-                "📦 Storing chunks into ChromaDB...",
-                flush=True
-            )
+                print(
+                    "Document ID :",
+                    document_id,
+                    flush=True
+                )
 
-            await asyncio.to_thread(
+                # ====================================================
+                # LOAD TEXT FROM MONGODB
+                # ====================================================
 
-                chroma.add_document,
+                print(
+                    "📄 Loading text...",
+                    flush=True
+                )
 
-                document_id,
+                text = await repository.get_text(
 
-                chunks
+                    document_id
 
-            )
+                )
 
-            print(
-                "✅ Chunks stored",
-                flush=True
-            )
-            count = chroma.count_documents()
+                if not text:
 
-            print(
-                f"📊 Total chunks in Chroma : {count}",
-                flush=True
-            )
+                    print(
+                        "❌ Text not found",
+                        flush=True
+                    )
 
-            await repository.update_embedding_status(
+                    documents_failed.inc()
 
-                document_id
+                    continue
 
-            )
+                print(
+                    "✅ Text loaded successfully",
+                    flush=True
+                )
 
-            print(
-                "✅ MongoDB updated",
-                flush=True
-            )
+                # ====================================================
+                # TEXT SPLITTING
+                # ====================================================
+
+                print(
+                    "✂ Splitting text...",
+                    flush=True
+                )
+
+                chunks = splitter.split(
+
+                    text
+
+                )
+
+                print(
+                    f"✅ {len(chunks)} chunks created",
+                    flush=True
+                )
+
+                # ====================================================
+                # CHROMADB / EMBEDDINGS
+                # ====================================================
+
+                print(
+                    "📦 Storing chunks into ChromaDB...",
+                    flush=True
+                )
+
+                embedding_start = time.perf_counter()
+
+                await asyncio.to_thread(
+
+                    chroma.add_document,
+
+                    document_id,
+
+                    chunks
+
+                )
+
+                embedding_time = (
+
+                    time.perf_counter()
+                    - embedding_start
+
+                )
+
+                embedding_duration.observe(
+
+                    embedding_time
+
+                )
+
+                print(
+                    f"⏱️ Embedding duration: "
+                    f"{embedding_time:.2f}s",
+                    flush=True
+                )
+
+                print(
+                    "✅ Chunks stored",
+                    flush=True
+                )
+
+                # ====================================================
+                # CHROMA COUNT
+                # ====================================================
+
+                count = chroma.count_documents()
+
+                print(
+                    f"📊 Total chunks in Chroma : {count}",
+                    flush=True
+                )
+
+                # ====================================================
+                # MONGODB STATUS
+                # ====================================================
+
+                await repository.update_embedding_status(
+
+                    document_id
+
+                )
+
+                print(
+                    "✅ MongoDB updated",
+                    flush=True
+                )
+
+                # ====================================================
+                # TOTAL PROCESSING TIME
+                # ====================================================
+
+                total_time = (
+
+                    time.perf_counter()
+                    - start_time
+
+                )
+
+                print(
+                    f"⏱️ Total embedding processing: "
+                    f"{total_time:.2f}s",
+                    flush=True
+                )
+
+                documents_success.inc()
+
+                print(
+                    "✅ Embedding document processed successfully",
+                    flush=True
+                )
+
+            except Exception as e:
+
+                documents_failed.inc()
+
+                worker_errors.inc()
+
+                print(
+                    f"❌ Error processing embedding: {e}",
+                    flush=True
+                )
+
+            finally:
+
+                documents_processed.inc()
+
+                documents_processing.dec()
 
     finally:
 
@@ -215,7 +371,18 @@ async def consume():
         )
 
 
+# ============================================================
+# APPLICATION START
+# ============================================================
+
 if __name__ == "__main__":
+
+    start_http_server(8000)
+
+    print(
+        "📊 Prometheus metrics available on port 8000",
+        flush=True
+    )
 
     asyncio.run(
 

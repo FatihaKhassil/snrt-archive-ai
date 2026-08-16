@@ -6,3 +6,4 @@ langchain-ollama
 langchain-text-splitters
 langchain-chroma
 chromadb
+prometheus-client

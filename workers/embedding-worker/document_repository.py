@@ -5,7 +5,7 @@ from mongodb import mongodb
 
 class DocumentRepository:
 
-    async def get_transcription(
+    async def get_text(
         self,
         document_id
     ):
@@ -19,7 +19,8 @@ class DocumentRepository:
             },
 
             {
-                "transcription": 1
+                "transcription": 1,
+                "extracted_text": 1
             }
 
         )
@@ -28,9 +29,21 @@ class DocumentRepository:
 
             return None
 
-        return document.get(
-            "transcription"
-        )
+        # Audio traité par Whisper
+        if document.get("transcription"):
+
+            return document.get(
+                "transcription"
+            )
+
+        # PDF / DOCX traité par Tika
+        if document.get("extracted_text"):
+
+            return document.get(
+                "extracted_text"
+            )
+
+        return None
 
 
     async def update_embedding_status(

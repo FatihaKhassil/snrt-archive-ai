@@ -1,8 +1,16 @@
 import asyncio
 import json
+import time
 
 from aiokafka import AIOKafkaConsumer
 from aiokafka.errors import KafkaConnectionError
+
+from prometheus_client import (
+    Counter,
+    Gauge,
+    Histogram,
+    start_http_server
+)
 
 from kafka_producer import kafka_producer
 from topics import (
@@ -17,6 +25,50 @@ from document_repository import DocumentRepository
 KAFKA_BOOTSTRAP_SERVERS = "kafka:9092"
 TOPIC = TEXT_EXTRACTED
 
+
+# ============================================================
+# PROMETHEUS METRICS
+# ============================================================
+
+documents_received = Counter(
+    "documents_received_total",
+    "Total number of documents received by LLM worker"
+)
+
+documents_processed = Counter(
+    "documents_processed_total",
+    "Total number of documents processed by LLM worker"
+)
+
+documents_success = Counter(
+    "documents_success_total",
+    "Total number of successfully processed documents"
+)
+
+documents_failed = Counter(
+    "documents_failed_total",
+    "Total number of failed documents"
+)
+
+documents_processing = Gauge(
+    "documents_processing",
+    "Number of documents currently being processed"
+)
+
+llm_duration = Histogram(
+    "llm_duration_seconds",
+    "LLM processing duration in seconds"
+)
+
+worker_errors = Counter(
+    "worker_errors_total",
+    "Total number of worker errors"
+)
+
+
+# ============================================================
+# KAFKA CONSUMER
+# ============================================================
 
 async def create_consumer():
 
@@ -79,11 +131,17 @@ async def create_consumer():
                 flush=True
             )
 
+            worker_errors.inc()
+
             if consumer:
                 await consumer.stop()
 
             await asyncio.sleep(5)
 
+
+# ============================================================
+# CONSUMER LOOP
+# ============================================================
 
 async def consume():
 
@@ -99,90 +157,146 @@ async def consume():
 
         async for message in consumer:
 
-            print(
-                "\n📩 New extracted text received",
-                flush=True
-            )
+            documents_received.inc()
 
-            data = json.loads(
-                message.value.decode("utf-8")
-            )
+            documents_processing.inc()
 
-            document_id = data.get(
-                "document_id"
-            )
+            start_time = time.perf_counter()
 
-            text = data.get(
-                "text"
-            )
+            try:
 
-            print(
-                "Document ID :",
-                document_id,
-                flush=True
-            )
+                print(
+                    "\n📩 New extracted text received",
+                    flush=True
+                )
 
-            print(
-                "🤖 Starting LLM processing...",
-                flush=True
-            )
+                data = json.loads(
+                    message.value.decode("utf-8")
+                )
 
-            result = await asyncio.to_thread(
+                document_id = data.get(
+                    "document_id"
+                )
 
-                llm_service.process,
+                text = data.get(
+                    "text"
+                )
 
-                text
+                print(
+                    "Document ID :",
+                    document_id,
+                    flush=True
+                )
 
-            )
+                print(
+                    "🤖 Starting LLM processing...",
+                    flush=True
+                )
 
-            await repository.update_llm_result(
+                print(
+                    "📝 Building prompt...",
+                    flush=True
+                )
 
-                document_id,
+                result = await asyncio.to_thread(
 
-                result["summary"],
+                    llm_service.process,
 
-                result["keywords"]
+                    text
 
-            )
+                )
 
-            print(
-                "✅ Metadata saved to MongoDB",
-                flush=True
-            )
+                duration = (
+                    time.perf_counter()
+                    - start_time
+                )
 
-            print(
-                "Summary :",
-                result["summary"],
-                flush=True
-            )
+                llm_duration.observe(
+                    duration
+                )
 
-            print(
-                "Keywords :",
-                result["keywords"],
-                flush=True
-            )
+                print(
+                    f"⏱️ LLM duration: {duration:.2f}s",
+                    flush=True
+                )
 
-            print(
-                "📤 Sending metadata to Kafka...",
-                flush=True
-            )
+                print(
+                    "✅ LLM processing completed",
+                    flush=True
+                )
 
-            await kafka_producer.send(
+                await repository.update_llm_result(
 
-                LLM_COMPLETED,
+                    document_id,
 
-                {
-                    "document_id": document_id,
-                    "summary": result["summary"],
-                    "keywords": result["keywords"]
-                }
+                    result["summary"],
 
-            )
+                    result["keywords"]
 
-            print(
-                "✅ Metadata sent",
-                flush=True
-            )
+                )
+
+                print(
+                    "✅ Metadata saved to MongoDB",
+                    flush=True
+                )
+
+                print(
+                    "Summary :",
+                    result["summary"],
+                    flush=True
+                )
+
+                print(
+                    "Keywords :",
+                    result["keywords"],
+                    flush=True
+                )
+
+                print(
+                    "📤 Sending metadata to Kafka...",
+                    flush=True
+                )
+
+                await kafka_producer.send(
+
+                    LLM_COMPLETED,
+
+                    {
+                        "document_id": document_id,
+                        "summary": result["summary"],
+                        "keywords": result["keywords"]
+                    }
+
+                )
+
+                print(
+                    "✅ Metadata sent",
+                    flush=True
+                )
+
+                documents_success.inc()
+
+                print(
+                    "✅ LLM document processed successfully",
+                    flush=True
+                )
+
+            except Exception as e:
+
+                documents_failed.inc()
+
+                worker_errors.inc()
+
+                print(
+                    f"❌ Error processing document: {e}",
+                    flush=True
+                )
+
+            finally:
+
+                documents_processed.inc()
+
+                documents_processing.dec()
 
     finally:
 
@@ -196,7 +310,18 @@ async def consume():
         )
 
 
+# ============================================================
+# APPLICATION START
+# ============================================================
+
 if __name__ == "__main__":
+
+    start_http_server(8000)
+
+    print(
+        "📊 Prometheus metrics available on port 8000",
+        flush=True
+    )
 
     asyncio.run(
         consume()
