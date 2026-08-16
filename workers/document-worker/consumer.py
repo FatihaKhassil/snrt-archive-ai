@@ -1,17 +1,29 @@
 import asyncio
 import json
+import time
 
 from aiokafka import AIOKafkaConsumer
 from aiokafka.errors import KafkaConnectionError
 
+from prometheus_client import start_http_server
+
 from tika_service import TikaService
 from document_repository import DocumentRepository
-
 
 from kafka_producer import kafka_producer
 from topics import (
     DOCUMENT_UPLOADED,
     TEXT_EXTRACTED
+)
+
+from metrics import (
+    documents_received_total,
+    documents_processed_total,
+    documents_success_total,
+    documents_failed_total,
+    documents_processing,
+    extraction_duration,
+    worker_errors_total
 )
 
 
@@ -27,7 +39,10 @@ async def create_consumer():
 
         try:
 
-            print("⏳ Connecting to Kafka...", flush=True)
+            print(
+                "⏳ Connecting to Kafka...",
+                flush=True
+            )
 
             consumer = AIOKafkaConsumer(
                 TOPIC,
@@ -53,7 +68,9 @@ async def create_consumer():
                 )
 
                 await consumer.stop()
+
                 await asyncio.sleep(5)
+
                 continue
 
             print(
@@ -75,7 +92,12 @@ async def create_consumer():
                 flush=True
             )
 
+            worker_errors_total.labels(
+                worker="document-worker"
+            ).inc()
+
             if consumer:
+
                 await consumer.stop()
 
             await asyncio.sleep(5)
@@ -88,6 +110,7 @@ async def consume():
     repository = DocumentRepository()
 
     consumer = await create_consumer()
+
     await kafka_producer.start()
 
     try:
@@ -99,106 +122,236 @@ async def consume():
                 flush=True
             )
 
-            data = json.loads(
-                message.value.decode("utf-8")
-            )
+            documents_received_total.inc()
 
-            document_id = data.get("document_id")
-            file_type = data.get("file_type")
-            file_path = data.get("storage_path")
+            documents_processing.inc()
 
-            print(
-                "==========================",
-                flush=True
-            )
+            try:
 
-            print(
-                "📄 New document received",
-                flush=True
-            )
+                data = json.loads(
+                    message.value.decode("utf-8")
+                )
 
-            print(
-                "==========================",
-                flush=True
-            )
+                document_id = data.get(
+                    "document_id"
+                )
 
-            print(
-                "Document ID :",
-                document_id,
-                flush=True
-            )
+                file_type = data.get(
+                    "file_type"
+                )
 
-            print(
-                "File type :",
-                file_type,
-                flush=True
-            )
-
-            print(
-                "Path :",
-                file_path,
-                flush=True
-            )
-
-            # Les fichiers audio sont traités par audio-worker
-            if file_type == "audio":
+                file_path = data.get(
+                    "storage_path"
+                )
 
                 print(
-                    "⏭ Audio detected, skipping...",
+                    "==========================",
                     flush=True
                 )
 
-                continue
+                print(
+                    "📄 New document received",
+                    flush=True
+                )
 
-            print(
-                "📑 Starting text extraction...",
-                flush=True
-            )
+                print(
+                    "==========================",
+                    flush=True
+                )
 
-            extracted_text = tika_service.extract(
-                file_path
-            )
+                print(
+                    "Document ID :",
+                    document_id,
+                    flush=True
+                )
 
-            print(
-                "✅ Extraction completed",
-                flush=True
-            )
+                print(
+                    "File type :",
+                    file_type,
+                    flush=True
+                )
 
-            await repository.update_extracted_text(
-                document_id,
-                extracted_text
-            )
+                print(
+                    "Path :",
+                    file_path,
+                    flush=True
+                )
 
-            print(
-                "✅ Text saved to MongoDB",
-                flush=True
-            )
+                # ====================================================
+                # AUDIO DOCUMENT
+                # ====================================================
 
-            print(
-                "📤 Sending extracted text to Kafka...",
-                flush=True
-            )
+                if file_type == "audio":
 
-            await kafka_producer.send(
-                TEXT_EXTRACTED,
-                {
-                    "document_id": document_id,
-                    "text": extracted_text
-                }
-            )
+                    print(
+                        "⏭ Audio detected, skipping...",
+                        flush=True
+                    )
 
-            print(
-                "✅ Text sent to Kafka",
-                flush=True
-            )
+                    continue
 
-            print(
-                "==========================",
-                flush=True
-            )
+                # ====================================================
+                # TEXT EXTRACTION
+                # ====================================================
+
+                print(
+                    "📑 Starting text extraction...",
+                    flush=True
+                )
+
+                extraction_start = time.perf_counter()
+
+                try:
+
+                    extracted_text = await asyncio.to_thread(
+                        tika_service.extract,
+                        file_path
+                    )
+
+                    extraction_time = (
+                        time.perf_counter()
+                        - extraction_start
+                    )
+
+                    extraction_duration.observe(
+                        extraction_time
+                    )
+
+                    print(
+                        f"⏱️ Extraction duration: "
+                        f"{extraction_time:.2f}s",
+                        flush=True
+                    )
+
+                except Exception as e:
+
+                    documents_failed_total.inc()
+
+                    worker_errors_total.labels(
+                        worker="document-worker"
+                    ).inc()
+
+                    print(
+                        f"❌ Tika extraction error: {e}",
+                        flush=True
+                    )
+
+                    continue
+
+                print(
+                    "✅ Extraction completed",
+                    flush=True
+                )
+
+                # ====================================================
+                # SAVE TO MONGODB
+                # ====================================================
+
+                try:
+
+                    await repository.update_extracted_text(
+                        document_id,
+                        extracted_text
+                    )
+
+                    print(
+                        "✅ Text saved to MongoDB",
+                        flush=True
+                    )
+
+                except Exception as e:
+
+                    documents_failed_total.inc()
+
+                    worker_errors_total.labels(
+                        worker="document-worker"
+                    ).inc()
+
+                    print(
+                        f"❌ MongoDB error: {e}",
+                        flush=True
+                    )
+
+                    continue
+
+                # ====================================================
+                # SEND TO KAFKA
+                # ====================================================
+
+                try:
+
+                    print(
+                        "📤 Sending extracted text to Kafka...",
+                        flush=True
+                    )
+
+                    await kafka_producer.send(
+                        TEXT_EXTRACTED,
+                        {
+                            "document_id": document_id,
+                            "text": extracted_text
+                        }
+                    )
+
+                    print(
+                        "✅ Text sent to Kafka",
+                        flush=True
+                    )
+
+                except Exception as e:
+
+                    documents_failed_total.inc()
+
+                    worker_errors_total.labels(
+                        worker="document-worker"
+                    ).inc()
+
+                    print(
+                        f"❌ Kafka error: {e}",
+                        flush=True
+                    )
+
+                    continue
+
+                # ====================================================
+                # SUCCESS
+                # ====================================================
+
+                documents_processed_total.inc()
+
+                documents_success_total.inc()
+
+                print(
+                    "✅ Document processed successfully",
+                    flush=True
+                )
+
+                print(
+                    "==========================",
+                    flush=True
+                )
+
+            except Exception as e:
+
+                documents_failed_total.inc()
+
+                worker_errors_total.labels(
+                    worker="document-worker"
+                ).inc()
+
+                print(
+                    f"❌ Unexpected worker error: {e}",
+                    flush=True
+                )
+
+            finally:
+
+                documents_processing.dec()
 
     finally:
+
         await kafka_producer.stop()
+
         await consumer.stop()
 
         print(
@@ -209,4 +362,13 @@ async def consume():
 
 if __name__ == "__main__":
 
-    asyncio.run(consume())
+    start_http_server(8000)
+
+    print(
+        "📊 Prometheus metrics available on port 8000",
+        flush=True
+    )
+
+    asyncio.run(
+        consume()
+    )

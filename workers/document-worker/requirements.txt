@@ -1,3 +1,4 @@
 aiokafka
 motor
 requests
+prometheus-client
