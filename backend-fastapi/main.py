@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.api.upload import router as upload_router
 from app.api.search import router as search_router
@@ -18,6 +19,7 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION
 )
+Instrumentator().instrument(app).expose(app)
 
 # ==========================
 # CORS Configuration

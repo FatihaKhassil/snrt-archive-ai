@@ -3,3 +3,5 @@ aiokafka
 openai-whisper
 torch
 motor
+
+prometheus-client

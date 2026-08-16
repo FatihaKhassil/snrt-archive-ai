@@ -185,29 +185,43 @@
 
 .chunks-badge {
     min-height: 38px;
-    padding: 0 14px;
+    padding: 0 15px;
+
     border-radius: 20px;
+
     color: #5b36d8;
     background: #f1edff;
+
     display: flex;
     align-items: center;
+    justify-content: center;
+
     gap: 7px;
+
     white-space: nowrap;
-    font-size: 14px;
-    font-weight: 750;
 }
 
 
 .chunks-badge svg {
+    flex: 0 0 auto;
     font-size: 19px;
 }
 
 
-.chunks-badge span {
-    font-size: 12px;
-    font-weight: 600;
+.chunks-badge .chunks-count {
+    color: #5b36d8;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1;
 }
 
+
+.chunks-badge .chunks-label {
+    color: #5b36d8;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1;
+}
 
 /* =========================================================
    ANSWER

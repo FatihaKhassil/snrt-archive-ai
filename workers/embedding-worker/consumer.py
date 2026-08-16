@@ -11,7 +11,7 @@ from topics import (
 
 from document_repository import DocumentRepository
 from services.text_splitter import TextSplitter
-from chroma_service import ChromaService
+from services.chroma_service import ChromaService
 
 
 KAFKA_BOOTSTRAP_SERVERS = "kafka:9092"

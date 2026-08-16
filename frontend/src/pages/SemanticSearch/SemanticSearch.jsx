@@ -246,12 +246,12 @@ function SemanticSearch() {
 
                                 <DescriptionOutlinedIcon />
 
-                                <span>
+                                <span className="chunks-count">
                                     {sources.length}
                                 </span>
-
-                                sources analysées
-
+                                <span className="chunks-label">
+                                    sources analysées
+                                 </span>
                             </div>
 
                         </div>
@@ -312,12 +312,14 @@ function SemanticSearch() {
 
                                     <DescriptionOutlinedIcon />
 
-                                    <span>
+                                    <span className="sources-count-number">
                                         {sources.length}
                                     </span>
-
+                                    
+                                    <span className="sources-count-label">
                                     document
                                     {sources.length !== 1 ? "s" : ""}
+                                    </span>
 
                                 </div>
 
