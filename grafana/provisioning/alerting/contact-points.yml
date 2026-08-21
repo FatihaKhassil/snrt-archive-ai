@@ -1,0 +1,12 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: SNRT Email Alert
+    receivers:
+      - uid: snrt-email-alert
+        type: email
+        settings:
+          addresses: fatihakhassil123@gmail.com
+          singleEmail: false
+        disableResolveMessage: false

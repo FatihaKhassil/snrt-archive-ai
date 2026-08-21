@@ -1,6 +1,11 @@
 services:
 
+  # ============================================================
+  # BACKEND
+  # ============================================================
+
   backend:
+
     build:
       context: ./backend-fastapi
 
@@ -23,6 +28,12 @@ services:
       kafka:
         condition: service_healthy
 
+    restart: always
+
+
+  # ============================================================
+  # AUDIO WORKER
+  # ============================================================
 
   audio-worker:
 
@@ -41,6 +52,10 @@ services:
 
     restart: always
 
+
+  # ============================================================
+  # DOCUMENT WORKER
+  # ============================================================
 
   document-worker:
 
@@ -67,6 +82,10 @@ services:
     restart: always
 
 
+  # ============================================================
+  # LLM WORKER
+  # ============================================================
+
   llm-worker:
 
     build:
@@ -90,6 +109,10 @@ services:
 
     restart: always
 
+
+  # ============================================================
+  # EMBEDDING WORKER
+  # ============================================================
 
   embedding-worker:
 
@@ -118,6 +141,10 @@ services:
     restart: always
 
 
+  # ============================================================
+  # SOLR WORKER
+  # ============================================================
+
   solr-worker:
 
     build:
@@ -142,6 +169,10 @@ services:
     restart: always
 
 
+  # ============================================================
+  # MONGODB
+  # ============================================================
+
   mongodb:
 
     image: mongo:8.0
@@ -156,6 +187,10 @@ services:
     volumes:
       - mongodb_data:/data/db
 
+
+  # ============================================================
+  # KAFKA
+  # ============================================================
 
   kafka:
 
@@ -204,6 +239,12 @@ services:
 
       retries: 10
 
+      start_period: 20s
+
+
+  # ============================================================
+  # TIKA
+  # ============================================================
 
   tika:
 
@@ -216,6 +257,10 @@ services:
 
     restart: always
 
+
+  # ============================================================
+  # OLLAMA
+  # ============================================================
 
   ollama:
 
@@ -232,6 +277,10 @@ services:
     restart: always
 
 
+  # ============================================================
+  # CHROMA
+  # ============================================================
+
   chroma:
 
     image: chromadb/chroma:latest
@@ -246,6 +295,10 @@ services:
 
     restart: always
 
+
+  # ============================================================
+  # SOLR
+  # ============================================================
 
   solr:
 
@@ -262,6 +315,10 @@ services:
 
     restart: always
 
+
+  # ============================================================
+  # KAFKA UI
+  # ============================================================
 
   kafka-ui:
 
@@ -283,6 +340,177 @@ services:
 
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
 
+    restart: always
+
+
+  # ============================================================
+  # PROMETHEUS
+  # ============================================================
+
+  prometheus:
+
+    image: prom/prometheus:latest
+
+    container_name: snrt_prometheus
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+      - prometheus_data:/prometheus
+
+    depends_on:
+
+      audio-worker:
+        condition: service_started
+
+      document-worker:
+        condition: service_started
+
+      llm-worker:
+        condition: service_started
+
+      embedding-worker:
+        condition: service_started
+
+      solr-worker:
+        condition: service_started
+
+    restart: always
+
+
+  # ============================================================
+  # LOKI
+  # ============================================================
+
+  loki:
+
+    image: grafana/loki:3.7.0
+
+    container_name: snrt_loki
+
+    ports:
+      - "3100:3100"
+
+    command:
+      - "-config.file=/etc/loki/config.yaml"
+
+    volumes:
+
+      - ./loki/loki-config.yaml:/etc/loki/config.yaml:ro
+
+      - loki_data:/loki
+
+    restart: always
+
+
+  # ============================================================
+  # GRAFANA ALLOY
+  # ============================================================
+
+  alloy:
+
+    image: grafana/alloy:latest
+
+    container_name: snrt_alloy
+
+    volumes:
+
+      - ./loki/alloy-config.alloy:/etc/alloy/config.alloy:ro
+
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+      - alloy_data:/var/lib/alloy
+
+    command:
+
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+
+    depends_on:
+
+      loki:
+        condition: service_started
+
+    restart: always
+
+
+  # ============================================================
+  # GRAFANA
+  # ============================================================
+
+  grafana:
+
+    image: grafana/grafana:latest
+
+    container_name: snrt_grafana
+
+    ports:
+      - "3000:3000"
+
+    environment:
+
+      # --------------------------------------------------------
+      # SMTP - Email alerts
+      # --------------------------------------------------------
+
+      GF_SMTP_ENABLED: "true"
+
+      GF_SMTP_HOST: "smtp.gmail.com:587"
+
+      GF_SMTP_USER: "${GRAFANA_SMTP_USER}"
+
+      GF_SMTP_PASSWORD: "${GRAFANA_SMTP_PASSWORD}"
+
+      GF_SMTP_FROM_ADDRESS: "${GRAFANA_SMTP_FROM}"
+
+      GF_SMTP_FROM_NAME: "SNRT Grafana"
+
+    volumes:
+
+      # --------------------------------------------------------
+      # Grafana persistent data
+      # --------------------------------------------------------
+
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+
+      # --------------------------------------------------------
+      # Grafana dashboards
+      # --------------------------------------------------------
+
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+
+      # --------------------------------------------------------
+      # Grafana dashboard provisioning
+      # --------------------------------------------------------
+
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+
+      # --------------------------------------------------------
+      # Grafana alerting provisioning
+      # --------------------------------------------------------
+
+      - ./grafana/provisioning/alerting:/etc/grafana/provisioning/alerting:ro
+
+    depends_on:
+
+      prometheus:
+        condition: service_started
+
+      loki:
+        condition: service_started
+
+    restart: always
+
+
+# ==============================================================
+# VOLUMES
+# ==============================================================
 
 volumes:
 
@@ -291,3 +519,11 @@ volumes:
   ollama_data:
 
   chroma_data:
+
+  prometheus_data:
+
+  grafana_data:
+
+  loki_data:
+
+  alloy_data:

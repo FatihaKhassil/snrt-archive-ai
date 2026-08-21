@@ -1,0 +1,69 @@
+apiVersion: 1
+groups:
+    - orgId: 1
+      name: SNRT Workers Monitoring
+      folder: SNRT Monitoring
+      interval: 1m
+      rules:
+        - uid: efvowijleud4wd
+          title: Workers Down
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: efve284tvny80d
+              model:
+                editorMode: code
+                expr: up{job=~"audio-worker|document-worker|embedding-worker|llm-worker|solr-worker"}
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 1
+                        type: lt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            description: |-
+                The {{ $labels.job }} worker is currently down.
+
+                The worker may be unavailable and documents may remain unprocessed in the SNRT Archive AI pipeline.
+
+                Check the worker logs and Docker container status.
+                Check the worker logs and Prometheus metrics to identify the affected document and processing stage.
+            summary: SNRT Archive AI - {{ $labels.job }} is down
+          labels:
+            component: '{{ $$labels.job }}'
+            severity: critical
+          isPaused: false
+          notification_settings:
+            receiver: SNRT Email Alert
