@@ -1,6 +1,27 @@
 services:
 
   # ============================================================
+  # FRONTEND
+  # ============================================================
+
+  frontend:
+
+    build:
+      context: ./frontend
+
+    container_name: snrt_frontend
+
+    ports:
+      - "5173:80"
+
+    depends_on:
+      backend:
+        condition: service_started
+
+    restart: always
+
+
+  # ============================================================
   # BACKEND
   # ============================================================
 
@@ -472,29 +493,19 @@ services:
 
     volumes:
 
-      # --------------------------------------------------------
       # Grafana persistent data
-      # --------------------------------------------------------
-
       - grafana_data:/var/lib/grafana
+
+      # Grafana provisioning
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
 
-      # --------------------------------------------------------
-      # Grafana dashboards
-      # --------------------------------------------------------
-
+      # Dashboards
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
 
-      # --------------------------------------------------------
-      # Grafana dashboard provisioning
-      # --------------------------------------------------------
-
+      # Dashboard provisioning
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
 
-      # --------------------------------------------------------
-      # Grafana alerting provisioning
-      # --------------------------------------------------------
-
+      # Alerting provisioning
       - ./grafana/provisioning/alerting:/etc/grafana/provisioning/alerting:ro
 
     depends_on:

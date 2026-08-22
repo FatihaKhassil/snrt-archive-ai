@@ -94,12 +94,12 @@ class RagService:
                 }
             )
 
-            # Maximum 3 passages utilisés
+            # On garde plusieurs passages pour le LLM
             if len(unique_results) >= 3:
                 break
 
         print(
-            f"Chunks utilisés : {len(unique_results)}"
+            f"Chunks utilisés pour le LLM : {len(unique_results)}"
         )
 
         if not unique_results:
@@ -325,25 +325,107 @@ class RagService:
         print(answer)
 
         # ============================================================
-        # 7. RÉCUPÉRATION DES DOCUMENTS SOURCES
+        # 7. SOURCES AFFICHÉES
+        # ============================================================
+        #
+        # IMPORTANT :
+        #
+        # Le LLM reçoit toujours les 3 passages.
+        #
+        # Mais pour l'affichage, on garde uniquement le document
+        # correspondant au premier résultat de Chroma.
+        #
+        # Le premier résultat est celui qui possède la priorité
+        # sémantique la plus élevée.
+        #
+        # Cela permet d'éviter d'afficher des documents secondaires
+        # qui ont été récupérés uniquement parce que k=5.
+        #
         # ============================================================
 
-        print(
-            "\n========== SOURCE IDS =========="
-        )
+        display_results = []
 
-        print(document_ids)
+        if unique_results:
+
+            # Premier résultat = priorité sémantique maximale
+            best_result = unique_results[0]
+
+            best_document_id = (
+                best_result["metadata"].get(
+                    "document_id"
+                )
+            )
+
+            if best_document_id:
+
+                best_document_id = str(
+                    best_document_id
+                )
+
+                display_results.append(
+                    best_result
+                )
+
+                print(
+                    "\n========== SOURCE PRIORITAIRE =========="
+                )
+
+                print(
+                    f"Document ID : {best_document_id}"
+                )
+
+                print(
+                    f"Metadata : {best_result['metadata']}"
+                )
+
+                print(
+                    f"Excerpt : {best_result['text']}"
+                )
+
+        # ============================================================
+        # 8. RÉCUPÉRATION DU DOCUMENT PRIORITAIRE DANS MONGODB
+        # ============================================================
 
         sources = []
 
-        if document_ids:
+        display_document_ids = []
+
+        for item in display_results:
+
+            document_id = (
+                item["metadata"].get(
+                    "document_id"
+                )
+            )
+
+            if document_id:
+
+                document_id = str(
+                    document_id
+                )
+
+                if document_id not in display_document_ids:
+
+                    display_document_ids.append(
+                        document_id
+                    )
+
+        print(
+            "\n========== SOURCE IDS AFFICHÉS =========="
+        )
+
+        print(
+            display_document_ids
+        )
+
+        if display_document_ids:
 
             try:
 
                 documents = await (
                     self.document_repository
                     .get_documents(
-                        document_ids
+                        display_document_ids
                     )
                 )
 
@@ -360,7 +442,7 @@ class RagService:
                     for document in documents
                 }
 
-                for item in unique_results:
+                for item in display_results:
 
                     metadata = item["metadata"]
 
@@ -473,7 +555,7 @@ class RagService:
 
                 print(
                     "❌ Erreur récupération "
-                    "MongoDB sources:"
+                    "MongoDB source:"
                 )
 
                 print(
@@ -481,7 +563,7 @@ class RagService:
                 )
 
         # ============================================================
-        # 8. RÉPONSE FINALE
+        # 9. RÉPONSE FINALE
         # ============================================================
 
         result = {
@@ -489,15 +571,17 @@ class RagService:
             "answer":
                 answer,
 
+            # Nombre de chunks réellement utilisés par le LLM
             "chunks":
                 len(unique_results),
 
+            # Seulement les sources prioritaires affichées
             "sources":
                 sources
         }
 
         print(
-            "\n========== SOURCES =========="
+            "\n========== SOURCES AFFICHÉES =========="
         )
 
         print(sources)

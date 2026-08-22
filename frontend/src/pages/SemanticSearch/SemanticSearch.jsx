@@ -485,7 +485,7 @@ function SemanticSearch() {
 
                                                         <a
                                                             className="source-download-button"
-                                                            href={`http://localhost:8000/documents/${source.document_id}/download`}
+                                                            href={`${import.meta.env.VITE_API_URL || "http://127.0.0.1:8000"}/documents/${source.document_id}/download`}
                                                             title="Télécharger le document original"
                                                         >
 

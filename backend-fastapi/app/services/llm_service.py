@@ -9,7 +9,7 @@ class LLMService:
     def __init__(self):
 
         # ============================================================
-        # LLM PROVIDER
+        # PROVIDER
         # ============================================================
 
         self.provider = os.getenv(
@@ -18,7 +18,7 @@ class LLMService:
         ).lower().strip()
 
         # ============================================================
-        # OLLAMA CONFIGURATION
+        # OLLAMA
         # ============================================================
 
         self.ollama_url = os.getenv(
@@ -32,7 +32,7 @@ class LLMService:
         )
 
         # ============================================================
-        # GROQ CONFIGURATION
+        # GROQ
         # ============================================================
 
         self.groq_api_key = os.getenv(
@@ -49,7 +49,6 @@ class LLMService:
         if self.provider == "groq":
 
             if not self.groq_api_key:
-
                 raise RuntimeError(
                     "GROQ_API_KEY is not configured."
                 )
@@ -62,10 +61,7 @@ class LLMService:
         # VALIDATION
         # ============================================================
 
-        if self.provider not in (
-            "ollama",
-            "groq"
-        ):
+        if self.provider not in ("ollama", "groq"):
 
             raise ValueError(
                 f"Unsupported LLM_PROVIDER: {self.provider}. "
@@ -116,34 +112,39 @@ class LLMService:
             flush=True
         )
 
-    # ================================================================
+    # ============================================================
     # PUBLIC METHOD
-    # ================================================================
+    # ============================================================
 
     async def generate(
         self,
         prompt: str
     ) -> str:
 
+        if not prompt or not prompt.strip():
+
+            print(
+                "❌ LLM : prompt vide",
+                flush=True
+            )
+
+            return ""
+
         if self.provider == "ollama":
 
-            return await self._generate_ollama(
-                prompt
-            )
+            return await self._generate_ollama(prompt)
 
-        if self.provider == "groq":
+        elif self.provider == "groq":
 
-            return await self._generate_groq(
-                prompt
-            )
+            return await self._generate_groq(prompt)
 
         raise RuntimeError(
             f"Unsupported LLM provider: {self.provider}"
         )
 
-    # ================================================================
+    # ============================================================
     # OLLAMA
-    # ================================================================
+    # ============================================================
 
     async def _generate_ollama(
         self,
@@ -151,39 +152,58 @@ class LLMService:
     ) -> str:
 
         final_prompt = f"""
+Tu es un assistant intelligent spécialisé dans la recherche
+dans les archives audiovisuelles de la SNRT.
+
+Tu dois répondre UNIQUEMENT à partir du contexte fourni.
+
+================ QUESTION + CONTEXTE ================
+
 {prompt}
 
-========================
-IMPORTANT
-========================
+================ FIN DU CONTEXTE ====================
 
-La réponse ne doit jamais être uniquement un nom,
-un mot ou une courte expression lorsque le contexte
-permet de donner plus d'informations.
+RÈGLES IMPORTANTES :
 
-Donne une réponse complète et naturelle.
+1. Identifie d'abord la question de l'utilisateur.
 
-Pour une question simple concernant une personne,
-un rôle ou un événement, donne au minimum 1 à 3 phrases
-qui expliquent clairement la réponse à partir du contexte.
+2. Analyse attentivement tous les passages du contexte.
 
-Exemple :
+3. Cherche l'information demandée dans les passages.
 
-Question :
-من كان قائد فريق ترس في اللعبة؟
+4. Si un passage contient directement la réponse,
+   utilise cette information.
 
-Réponse insuffisante :
-فور.
+5. Si plusieurs passages sont pertinents,
+   combine uniquement les informations utiles.
 
-Réponse attendue :
-كان فور قائد الفريق الذي كانت ترس ضمنه في اللعبة.
-أما الفريق المنافس فكان بقيادة إريك.
+6. Ignore complètement les documents qui ne répondent
+   pas à la question.
 
-Ne copie pas cet exemple.
-Utilise uniquement les informations présentes
-dans le contexte fourni.
+7. N'invente aucune information.
 
-Réponds maintenant à la question de l'utilisateur.
+8. N'utilise aucune connaissance extérieure au contexte.
+
+9. Réponds dans la même langue que la question.
+
+10. Si la question est en arabe, réponds en arabe.
+
+11. Si la réponse existe dans le contexte,
+    réponds directement et clairement.
+
+12. Ne réponds jamais avec une réponse vide.
+
+13. Si l'information demandée n'existe réellement
+    dans aucun passage, réponds exactement :
+
+لم أجد هذه المعلومة في الأرشيف.
+
+14. Ne parle jamais de ChromaDB, embeddings, RAG,
+    Ollama, Groq ou de l'architecture technique.
+
+15. Donne directement la réponse.
+
+================ RÉPONSE =================
 """
 
         print(
@@ -201,73 +221,72 @@ Réponds maintenant à la question de l'utilisateur.
             flush=True
         )
 
-        url = (
-            f"{self.ollama_url}/api/generate"
-        )
+        url = f"{self.ollama_url}/api/generate"
 
-        async with httpx.AsyncClient(
-            timeout=300
-        ) as client:
+        try:
 
-            response = await client.post(
+            async with httpx.AsyncClient(
+                timeout=300
+            ) as client:
 
-                url,
-
-                json={
-
-                    "model": self.ollama_model,
-
-                    "prompt": final_prompt,
-
-                    "stream": False,
-
-                    "options": {
-
-                        "temperature": 0.2,
-
-                        "top_p": 0.9,
-
-                        "num_predict": 300,
-
-                        "repeat_penalty": 1.1
+                response = await client.post(
+                    url,
+                    json={
+                        "model": self.ollama_model,
+                        "prompt": final_prompt,
+                        "stream": False,
+                        "options": {
+                            "temperature": 0.1,
+                            "top_p": 0.9,
+                            "num_predict": 300,
+                            "repeat_penalty": 1.1
+                        }
                     }
-                }
+                )
+
+            print(
+                f"Ollama status : {response.status_code}",
+                flush=True
             )
 
-        print(
-            f"Ollama status : {response.status_code}",
-            flush=True
-        )
+            response.raise_for_status()
 
-        response.raise_for_status()
+            data = response.json()
 
-        data = response.json()
+            answer = (
+                data.get("response")
+                or ""
+            ).strip()
 
-        answer = (
-            data.get("response")
-            or ""
-        ).strip()
+            print(
+                "\n========== OLLAMA ANSWER ==========",
+                flush=True
+            )
 
-        print(
-            "\n========== OLLAMA ANSWER ==========",
-            flush=True
-        )
+            print(
+                answer,
+                flush=True
+            )
 
-        print(
-            answer,
-            flush=True
-        )
+            print(
+                "====================================\n",
+                flush=True
+            )
 
-        print(
-            "====================================\n",
-            flush=True
-        )
+            return answer
 
-        return answer
+        except Exception as e:
 
-    # ================================================================
+            print(
+                f"❌ Ollama error : {str(e)}",
+                flush=True
+            )
+
+            return ""
+
+    # ============================================================
     # GROQ
-    # ================================================================
+    # ============================================================
 
     async def _generate_groq(
         self,
@@ -284,65 +303,66 @@ Réponds maintenant à la question de l'utilisateur.
 Tu es un assistant intelligent spécialisé dans la recherche
 dans les archives audiovisuelles de la SNRT.
 
-Tu dois répondre uniquement à partir du contexte fourni
-par l'application.
+Tu réponds uniquement à partir du contexte fourni par
+l'application.
 
-Règles :
+RÈGLES :
 
-1. Utilise uniquement les informations présentes dans le contexte.
+1. Analyse attentivement le contexte.
 
-2. N'invente aucune information.
+2. Identifie l'information demandée par la question.
 
-3. Lis tous les passages avant de répondre.
+3. Utilise uniquement les passages pertinents.
 
-4. Ignore les passages qui ne sont pas pertinents pour la question.
+4. Ignore les passages qui ne répondent pas à la question.
 
-5. Si plusieurs passages contiennent des informations utiles,
-   combine-les dans une réponse cohérente.
+5. Si un passage contient la réponse, utilise-le directement.
 
-6. Donne une réponse complète et naturelle.
+6. Si plusieurs passages sont pertinents, combine-les
+   uniquement lorsqu'ils apportent réellement une information
+   complémentaire.
 
-7. Ne réponds pas uniquement avec un nom ou un seul mot
-   lorsque le contexte permet d'expliquer davantage.
+7. N'invente aucune information.
 
-8. Pour une question simple, réponds généralement avec
-   une à trois phrases.
+8. N'utilise aucune connaissance extérieure au contexte.
 
-9. Pour une question complexe, donne une réponse plus détaillée
-   lorsque cela est nécessaire.
+9. Réponds dans la même langue que la question.
 
-10. Réponds dans la même langue que la question.
+10. Si la question est en arabe, réponds en arabe.
 
-11. Si la question est en arabe, réponds en arabe.
+11. Si la question est en français, réponds en français.
 
-12. Si la question est en français, réponds en français.
+12. Donne une réponse naturelle et complète.
 
-13. N'utilise aucune connaissance extérieure au contexte.
+13. Pour une question simple, une à trois phrases suffisent.
 
-14. Si l'information demandée n'existe pas dans le contexte,
-    réponds exactement :
+14. Pour une question complexe, donne davantage de détails
+    uniquement si le contexte le permet.
 
-    لم أجد هذه المعلومة في الأرشيف.
-
-15. Ne parle pas de ChromaDB, embeddings, RAG, Ollama,
-    Groq ou de l'architecture technique.
+15. Ne réponds jamais uniquement par un nom si le contexte
+    permet de donner une explication.
 
 16. Ne répète pas la question.
 
-17. Donne directement la réponse.
+17. Ne parle jamais de ChromaDB, embeddings, RAG,
+    Ollama, Groq ou de l'architecture technique.
+
+18. Si l'information demandée n'existe réellement
+    dans aucun passage, réponds exactement :
+
+لم أجد هذه المعلومة في الأرشيف.
+
+19. Ne retourne jamais une réponse vide.
 """
 
         user_prompt = f"""
-Voici le contexte extrait des archives SNRT :
-
-================ CONTEXTE ================
+================ QUESTION ET CONTEXTE ================
 
 {prompt}
 
-============== FIN CONTEXTE ==============
+================ FIN DU CONTEXTE ======================
 
-Réponds maintenant à la question de l'utilisateur
-en respectant toutes les règles.
+Réponds maintenant à la question de l'utilisateur.
 """
 
         print(
@@ -360,53 +380,71 @@ en respectant toutes les règles.
             flush=True
         )
 
-        completion = await self.groq_client.chat.completions.create(
+        try:
 
-            model=self.groq_model,
+            completion = await self.groq_client.chat.completions.create(
 
-            messages=[
+                model=self.groq_model,
 
-                {
-                    "role": "system",
-                    "content": system_prompt
-                },
+                messages=[
+                    {
+                        "role": "system",
+                        "content": system_prompt
+                    },
+                    {
+                        "role": "user",
+                        "content": user_prompt
+                    }
+                ],
 
-                {
-                    "role": "user",
-                    "content": user_prompt
-                }
-            ],
+                temperature=0.1,
 
-            temperature=0.2,
+                max_tokens=300,
 
-            max_tokens=300,
+                top_p=0.9,
 
-            top_p=0.9,
+                stream=False
+            )
 
-            stream=False
-        )
+            answer = (
+                completion
+                .choices[0]
+                .message
+                .content
+                or ""
+            ).strip()
 
-        answer = (
-            completion
-            .choices[0]
-            .message
-            .content
-            or ""
-        ).strip()
+            print(
+                "\n========== GROQ ANSWER ==========",
+                flush=True
+            )
 
-        print(
-            "\n========== GROQ ANSWER ==========",
-            flush=True
-        )
+            print(
+                answer,
+                flush=True
+            )
 
-        print(
-            answer,
-            flush=True
-        )
+            print(
+                "=================================\n",
+                flush=True
+            )
 
-        print(
-            "=================================\n",
-            flush=True
-        )
+            if not answer:
 
-        return answer
+                print(
+                    "⚠️ GROQ a retourné une réponse vide",
+                    flush=True
+                )
+
+                return ""
+
+            return answer
+
+        except Exception as e:
+
+            print(
+                f"❌ Groq error : {str(e)}",
+                flush=True
+            )
+
+            return ""
